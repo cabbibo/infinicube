@@ -17,7 +17,7 @@ varying vec2 vUv;
 
 
 
-const float MAX_TRACE_DISTANCE = 10.;           // max trace distance
+const float MAX_TRACE_DISTANCE = 40.;           // max trace distance
 const float INTERSECTION_PRECISION = 0.1;        // precision of the intersection
 const int NUM_OF_TRACE_STEPS = 10;
 
@@ -71,7 +71,7 @@ float opRepSphere( vec3 p, vec3 c , float r)
 float opRepBox( vec3 p, vec3 c , float r)
 {
     vec3 q = mod(p,c)-0.5*c;
-    return udBox( q  ,vec3( r ));
+    return sdBox( q  ,vec3( r ));
 }
 
 
@@ -92,6 +92,14 @@ float sphereField( vec3 p ){
 
   float fieldSize = 1.  + abs( sin( parameter5) ) * 1.;
   return opRepSphere( p , vec3(fieldSize ), .01 + parameter4 * .05 );
+
+}
+
+
+float cubeField( vec3 p ){
+
+  float fieldSize = 1.  + abs( sin( parameter5) ) * 1.;
+  return opRepBox( p , vec3(fieldSize ), .3 + parameter4 * .05  );
 
 }
 
@@ -123,9 +131,9 @@ vec2 map( vec3 pos ){
 
    // vec2 res = vec2( opRepSphere( pos , vec3( repSize ) , radius ) , 1. );
     //vec2 res = vec2( sdSphere( pos ,  radius ) , 1. );
-    vec2 res = vec2( sdBlob( pos ) , 1. );
+    //vec2 res = vec2( sdBlob( pos ) , 1. );
 
-    //vec2 res =  vec2( sphereField( pos ) , 2. );
+    vec2 res =  vec2( sphereField( pos ) , 2. );
     return res;
     
 }
@@ -238,6 +246,7 @@ void main(){
   //col = vCam * .5 + .5;
 
 
+  gl_FragColor = vec4(vec3( length(col)) , 1. );
   gl_FragColor = vec4( col , 1. );
 
 }

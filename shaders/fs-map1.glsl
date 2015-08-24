@@ -113,6 +113,12 @@ float sdBlob( vec3 p ){
 
 }
 
+float cubeField( vec3 p ){
+
+  float fieldSize = 1.  + abs( sin( parameter5) ) * 1.;
+  return opRepBox( p , vec3(fieldSize ), .01 + parameter4 * .05  );
+
+}
 
 float sphereField( vec3 p ){
 
@@ -300,6 +306,8 @@ void main(){
   //col = vCam * .5 + .5;
 
 
+  //gl_FragColor = vec4(vec3(length( col)) , 1. );
   gl_FragColor = vec4( col , 1. );
+
 
 }

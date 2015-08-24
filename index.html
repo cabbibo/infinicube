@@ -240,13 +240,13 @@
         var ave = [0,0,0,0,0,0];
         for( var i = 0; i < 10; i++ ){
           var holo = holos[i];
-          holo.rotation.x += uniforms.dT.value * .1   * Math.sin( i );
-          holo.rotation.y += uniforms.dT.value * .139 * Math.sin( i );
-          holo.rotation.z += uniforms.dT.value * .21  * Math.sin( i );
+          holo.rotation.x += uniforms.dT.value * .1   * Math.sin( i+1 );
+          holo.rotation.y += uniforms.dT.value * .139 * Math.sin( i+1 );
+          holo.rotation.z += uniforms.dT.value * .21  * Math.sin( i+1 );
 
-          holo.position.x = Math.sin( uniforms.time.value * Math.sin( i ) * .1 );
-          holo.position.y = Math.sin( uniforms.time.value * Math.sin( i ) * .31 );
-          holo.position.z = Math.sin( uniforms.time.value * Math.sin( i ) * .71 );
+          holo.position.x = Math.sin( uniforms.time.value * Math.sin( i+1 ) * .1 );
+          holo.position.y = Math.sin( uniforms.time.value * Math.sin( i+1 ) * .31 );
+          holo.position.z = Math.sin( uniforms.time.value * Math.sin( i+1 ) * .71 );
 
           ave[0] += holo.position.x; 
           ave[1] += holo.position.y; 
