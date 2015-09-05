@@ -4,10 +4,23 @@
     <style>
       body{ margin: 0px; }
       html{ overflow: hidden }
+      h1{
+        color:#fff;
+        position:absolute;
+        width:100%;
+        bottom:20%;
+        text-align: center;
+        font-family: "Trebuchet MS", Helvetica, sans-serif;
+      }
+      h1:hover{
+
+        text-decoration: underline;
+      }
     </style>
   </head>
 
   <body>
+    <a href="mailto:who@tree.is"><h1> TREE COMPUTERS INC. </h1></a>
 
     <script src = "lib/three.min.js"                ></script>
     <script src = "lib/jquery.min.js"               ></script>
@@ -15,6 +28,8 @@
     <script src = "lib/stats.min.js"                ></script>
 
     <script src = "lib/TrackballControls.js"        ></script>
+    <script src = "MouseMoveControls.js"        ></script>
+
 
 
 
@@ -23,6 +38,8 @@
     var frameSlow = 6;
     var counter = 0;
     var holos = [];
+
+    var moving = false;
 
       var camera, renderer, scene , controls , clock;
       
@@ -38,8 +55,9 @@
 
       shaders.load( 'vs-holo' , 'holo' , 'vertex'   );
       //shaders.load( 'fs-holo' , 'holo' , 'fragment' );
-      shaders.load( 'fs-map1' , 'holo' , 'fragment' );
-      shaders.load( 'fs-bg' , 'bg' , 'fragment' );
+      //shaders.load( 'fs-map1' , 'holo' , 'fragment' );
+      shaders.load( 'fs-tree' , 'tree' , 'fragment' );
+      //shaders.load( 'fs-bg' , 'bg' , 'fragment' );
 
 
       // Normals For the Material
@@ -76,9 +94,9 @@
         var w = window.innerWidth;
         var h = window.innerHeight;
 
-        camera = new THREE.PerspectiveCamera( 65 , w/h , .001 , 10 );
-        camera.position.z = 1.5;
-        camera.position.x = 1.5;
+        camera = new THREE.PerspectiveCamera( 65 , w/h , .1 , 20 );
+        camera.position.z = 9.5;
+        //camera.position.x = 3.5;
 
         scene = new THREE.Scene();
 
@@ -95,124 +113,75 @@
         stats.domElement.style.left = "0px";
         stats.domElement.style.bottom = "-30px";
         stats.domElement.style.zIndex = "999";
-        document.body.appendChild( stats.domElement );
+        //document.body.appendChild( stats.domElement );
 
         window.addEventListener( 'resize', onWindowResize, false );
         window.addEventListener( 'keydown', keydown, false );
 
         clock = new THREE.Clock();
 
-        controls = new THREE.TrackballControls( camera );
+
+        controls = new THREE.MouseMoveControls( camera );
 
         var light = new THREE.Mesh( 
           new THREE.IcosahedronGeometry( .03 , 1 ),
           new THREE.MeshBasicMaterial()
         );
 
-        light.position.x = 1;
-        light.position.y = 1;
-        light.position.z = 1;
+        light.position.x = 2;
+        light.position.y = 2;
+        light.position.z = 2;
 
         uniforms.lightPosition.value = light.position;
-        scene.add( light );
+        //scene.add( light );
 
 
-        /*
+        var geo = new THREE.IcosahedronGeometry( 2.5 , 2 );
 
-
-           Actual Audio Object
-
-        */
-
-        var geo = new THREE.IcosahedronGeometry( .5 , 3 );
-
-        var geo = new THREE.BoxGeometry(5 , 5 , 5 , 1,1,1 );
         var mat = new THREE.ShaderMaterial({
 
           uniforms: {
 
-              time:          uniforms.time,
-              lightPosition: uniforms.lightPosition,
-       
-              parameter1: { type:"f"  , value : .5 },
-              parameter2: { type:"f"  , value : .5 },
-              parameter3: { type:"f"  , value : .5 },
-              parameter4: { type:"f"  , value : .5 },
-              parameter5: { type:"f"  , value : .5 },
-              parameter6: { type:"f"  , value : .5 },
+            time:          uniforms.time,
+            lightPosition: uniforms.lightPosition,
+     
+            parameter1: { type:"f"  , value : .5 },
+            parameter2: { type:"f"  , value : .5 },
+            parameter3: { type:"f"  , value : .5 },
+            parameter4: { type:"f"  , value : .5 },
+            parameter5: { type:"f"  , value : .5 },
+            parameter6: { type:"f"  , value : .5 },
 
-              iModelMat:{ type:"m4" , value: new THREE.Matrix4() },
+            iModelMat:{ type:"m4" , value: new THREE.Matrix4() },
 
-            },
+          },
           vertexShader: shaders.vs.holo,
-          fragmentShader: shaders.fs.bg,
+          fragmentShader: shaders.fs.tree,
           transparent: true,
-          side:THREE.BackSide
+          shading: THREE.FlatShading,
+          //side: THREE.DoubleSide
          // blending: THREE.AdditiveBlending
 
         }); 
+        var tree = new THREE.Mesh( geo , mat );
+        scene.add( tree ); 
 
+        tree.update = function(){
 
-        bg = new THREE.Mesh( geo , mat );
+          this.updateMatrixWorld();
+          this.material.uniforms.iModelMat.value.getInverse( this.matrixWorld );
+          
+          this.material.uniforms.parameter1.value = this.position.x;
+          this.material.uniforms.parameter2.value = this.position.y;
+          this.material.uniforms.parameter3.value = this.position.z;
+          
+          this.material.uniforms.parameter4.value = this.rotation.x;
+          this.material.uniforms.parameter5.value = this.rotation.y;
+          this.material.uniforms.parameter6.value = this.rotation.z;
 
-        scene.add( bg );
+        }.bind( tree );
 
-
-
-        var geo = new THREE.BoxGeometry(.5 , .5 , .5 , 1,1,1 );
-        for( var i = 0; i < 10; i++ ){
-
-
-          var mat = new THREE.ShaderMaterial({
-
-            uniforms: {
-
-              time:          uniforms.time,
-              lightPosition: uniforms.lightPosition,
-       
-              parameter1: { type:"f"  , value : .5 },
-              parameter2: { type:"f"  , value : .5 },
-              parameter3: { type:"f"  , value : .5 },
-              parameter4: { type:"f"  , value : .5 },
-              parameter5: { type:"f"  , value : .5 },
-              parameter6: { type:"f"  , value : .5 },
-
-              iModelMat:{ type:"m4" , value: new THREE.Matrix4() },
-
-            },
-            vertexShader: shaders.vs.holo,
-            fragmentShader: shaders.fs.holo,
-            transparent: true,
-           // blending: THREE.AdditiveBlending
-
-          }); 
-          var holo = new THREE.Mesh( geo , mat );
-          scene.add( holo ); 
-
-          holo.update = function(){
-
-            this.updateMatrixWorld();
-            this.material.uniforms.iModelMat.value.getInverse( this.matrixWorld );
-            
-            this.material.uniforms.parameter1.value = this.position.x;
-            this.material.uniforms.parameter2.value = this.position.y;
-            this.material.uniforms.parameter3.value = this.position.z;
-            
-            this.material.uniforms.parameter4.value = this.rotation.x;
-            this.material.uniforms.parameter5.value = this.rotation.y;
-            this.material.uniforms.parameter6.value = this.rotation.z;
-
-          }.bind( holo );
-
-          holos.push( holo );
-
-          holo.position.x = Math.sin( i );
-          holo.position.y = Math.cos( i  * 3.);
-          holo.position.z = Math.sin( i * 7.2);
-
-
-
-        }
+        tree.update();
 
      
 
@@ -237,37 +206,42 @@
         uniforms.dT.value = clock.getDelta();
         uniforms.time.value += uniforms.dT.value;
 
+        if( moving ){
+
         var ave = [0,0,0,0,0,0];
-        for( var i = 0; i < 10; i++ ){
-          var holo = holos[i];
-          holo.rotation.x += uniforms.dT.value * .1   * Math.sin( i+1 );
-          holo.rotation.y += uniforms.dT.value * .139 * Math.sin( i+1 );
-          holo.rotation.z += uniforms.dT.value * .21  * Math.sin( i+1 );
 
-          holo.position.x = Math.sin( uniforms.time.value * Math.sin( i+1 ) * .1 );
-          holo.position.y = Math.sin( uniforms.time.value * Math.sin( i+1 ) * .31 );
-          holo.position.z = Math.sin( uniforms.time.value * Math.sin( i+1 ) * .71 );
+          for( var i = 0; i < 10; i++ ){
+            var holo = holos[i];
+            holo.rotation.x += uniforms.dT.value * .1   * Math.sin( i+1 );
+            holo.rotation.y += uniforms.dT.value * .139 * Math.sin( i+1 );
+            holo.rotation.z += uniforms.dT.value * .21  * Math.sin( i+1 );
 
-          ave[0] += holo.position.x; 
-          ave[1] += holo.position.y; 
-          ave[2] += holo.position.z; 
-          ave[3] += holo.rotation.x; 
-          ave[4] += holo.rotation.y; 
-          ave[5] += holo.rotation.z; 
+            holo.position.x = Math.sin( uniforms.time.value * Math.sin( i+1 ) * .1 );
+            holo.position.y = Math.sin( uniforms.time.value * Math.sin( i+1 ) * .31 );
+            holo.position.z = Math.sin( uniforms.time.value * Math.sin( i+1 ) * .71 );
 
-          holo.update();
+            ave[0] += holo.position.x; 
+            ave[1] += holo.position.y; 
+            ave[2] += holo.position.z; 
+            ave[3] += holo.rotation.x; 
+            ave[4] += holo.rotation.y; 
+            ave[5] += holo.rotation.z; 
+
+            holo.update();
+          }
+
+          for( var i = 0; i< ave.length; i++ ){
+            ave[i] /= 10;
+          }
+
+          bg.material.uniforms.parameter1.value = ave[0];
+          bg.material.uniforms.parameter2.value = ave[1];
+          bg.material.uniforms.parameter3.value = ave[2];
+          bg.material.uniforms.parameter4.value = ave[3];
+          bg.material.uniforms.parameter5.value = ave[4];
+          bg.material.uniforms.parameter6.value = ave[5];
+
         }
-
-        for( var i = 0; i< ave.length; i++ ){
-          ave[i] /= 10;
-        }
-
-        bg.material.uniforms.parameter1.value = ave[0];
-        bg.material.uniforms.parameter2.value = ave[1];
-        bg.material.uniforms.parameter3.value = ave[2];
-        bg.material.uniforms.parameter4.value = ave[3];
-        bg.material.uniforms.parameter5.value = ave[4];
-        bg.material.uniforms.parameter6.value = ave[5];
 
         /*uniforms.parameter1.value += .01 * Math.sin( uniforms.time.value  * .1);
         uniforms.parameter2.value += .01 * Math.sin( uniforms.time.value  * .37);
@@ -306,6 +280,14 @@
 
         if( e.keyCode == 54 ){ uniforms.parameter6.value  += .1 }
         if( e.keyCode == 89 ){ uniforms.parameter6.value  -= .1 }
+
+        if( e.keyCode == 32 ){ toggleMovement(); }
+
+      }
+
+      function toggleMovement(){
+
+        moving = !moving;
 
       }
 

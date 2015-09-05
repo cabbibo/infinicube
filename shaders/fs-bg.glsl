@@ -246,7 +246,9 @@ void main(){
   //col = vCam * .5 + .5;
 
 
-  gl_FragColor = vec4(vec3( length(col)) , 1. );
+  //gl_FragColor = vec4(vec3( length(col)) , 1. );
   gl_FragColor = vec4( col , 1. );
+
+  gl_FragColor = vec4( 1. );
 
 }

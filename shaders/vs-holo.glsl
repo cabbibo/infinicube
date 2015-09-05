@@ -19,6 +19,7 @@ void main(){
 
   vCam   = ( iModelMat * vec4( cameraPosition , 1. ) ).xyz;
   vLight = ( iModelMat * vec4( lightPosition , 1. ) ).xyz;
+  //vLight = ( iModelMat * vec4(  vec3( 400. , 1000. , 400. ) , 1. ) ).xyz;
 
 
   // Use this position to get the final position 

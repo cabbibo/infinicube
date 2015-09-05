@@ -250,22 +250,13 @@ float calcAO( in vec3 pos, in vec3 nor )
 }*/
 
 
-/*vec3 doCol( float lamb , float spec ){
+vec3 doCol( float lamb , float spec ){
 
   float nSpec= pow( spec , abs(sin(parameter1 * 1.1))* 10. + 2. );
   return
       hsv( lamb * .3 + parameter2 , abs( sin( parameter6 )) * .2 + .6 , abs( sin( parameter2 ) * .4 + .6 )) * lamb 
     + hsv( nSpec * .6 + parameter3 , abs( sin( parameter5 )) * .4 + .6 , abs( sin( parameter4 ) * .3 + .8 )) * nSpec;
-}*/
-
-
-vec3 doCol( float lamb , float spec ){
-
-  float nSpec= pow( spec , 300. );
-  return
-      ( lamb * .5 + nSpec * 1.) * vec3( 1. );
 }
-
 
 
 
@@ -274,14 +265,13 @@ vec3 doCol( float lamb , float spec ){
 void main(){
 
   vec3 ro = vPos;
-  vec3 rdI = normalize( vPos - vCam );
-  vec3 rd = refract( rdI , vNorm , 1. / 1.5 );
+  vec3 rd = normalize( vPos - vCam );
 
-  vec3 lightDir = normalize( vLight - ro );
+  vec3 lightDir = normalize( vLight - ro);
 
   vec2 res = calcIntersection( ro , rd );
 
-  vec3 reflDir = reflect( lightDir , rd  );
+  vec3 reflDir = reflect( lightDir , vNorm );
 
   float lamb = max( dot( vNorm , lightDir), 0.);
   float spec = max( dot( reflDir , rd ), 0.);
@@ -292,9 +282,7 @@ void main(){
   float iSpec = max( dot( iReflDir , rd ), 0.);
 
 
-  vec3 col = doCol( lamb , iSpec );// * lamb * spec * 3.; //-vNorm * .5 + .5;
-
-  float opacity = length( col );
+  vec3 col = doCol( iLamb , iSpec );//-vNorm * .5 + .5;
   
   if( res.y > .5 ){
 
@@ -315,13 +303,10 @@ void main(){
 
     spec = pow( spec , 10. );
 
-    float AO = calcAO( pos , norm );
+    //float AO = calcAO( pos , norm );
 
 
-    col = vec3( AO * AO * AO );
-    col += hsv( spec , 1. , 1. ) * spec * 100.;
-
-    opacity += 1.;
+    //col = vec3( AO );
 
 
 
@@ -335,28 +320,18 @@ void main(){
 
     //col = hsv( sin( lamb * 100. ) , .65 , 1. );
     //col = lamb * vec3( 1. , 0. , 0. ) + pow( spec , 10.) * vec3( 0. , 0. , 1. );// norm * .5 +.5;
-     //col = doCol( lamb , spec );
+    col = doCol( lamb , spec );
   }else{
-/*
-    if( dot( vNorm , -rdI ) < .3 ){ 
-      col = vNorm * .5 + .5;
-      opacity = 1.; 
-    }else{
-      //discard;
-    }*/
 
-    /*if( vUv.x < .05 || vUv.x > .95 || vUv.y < .05 || vUv.y > .95 ){
-
-      col += doCol( lamb , spec );
-      col += vec3( .3 , .3 , .3 );
-      opacity = 1.;
-    }else{
-
-     // discard;
-    }*/
+    discard;
   }
 
+  /*if( vUv.x < .05 || vUv.x > .95 || vUv.y < .05 || vUv.y > .95 ){
 
+
+    col += doCol( lamb , spec );
+    col += vec3( .3 , .3 , .3 );
+  }*/
 
   //vec3 col = vec3( 2. - length( texture2D( t_iri , vUv * 4. - vec2( 1.5 ) ) ));
 
@@ -366,12 +341,7 @@ void main(){
 
 
   //gl_FragColor = vec4(vec3(length( col)) , 1. );
-
- 
-  gl_FragColor = vec4( col , opacity );
-
-
-
+  gl_FragColor = vec4( col , 1. );
 
 
 }
