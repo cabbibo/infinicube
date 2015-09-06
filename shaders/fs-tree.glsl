@@ -28,7 +28,7 @@ varying vec2 vUv;
 
 const float MAX_TRACE_DISTANCE = 5.0;             // max trace distance
 const float INTERSECTION_PRECISION = 0.01;        // precision of the intersection
-const int NUM_OF_TRACE_STEPS = 20;
+const int NUM_OF_TRACE_STEPS = 15;
 const float PI = 3.14159;
 
 vec3 hsv(float h, float s, float v){
