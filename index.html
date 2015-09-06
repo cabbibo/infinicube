@@ -70,8 +70,10 @@
         time:     { type:"f"  , value : 0             },
         
 
-        lightPosition1: { type:"v3" , value : null          },
-        lightPosition2: { type:"v3" , value : null          },
+        lightPosition1: { type:"v3" , value : new THREE.Vector3() },
+        lightPosition2: { type:"v3" , value : new THREE.Vector3() },
+        lightColor1   : { type:"v3" , value : new THREE.Vector3() },
+        lightColor2   : { type:"v3" , value : new THREE.Vector3() },
        
 
 
@@ -120,7 +122,7 @@
         stats.domElement.style.left = "0px";
         stats.domElement.style.bottom = "-30px";
         stats.domElement.style.zIndex = "999";
-        document.body.appendChild( stats.domElement );
+        //document.body.appendChild( stats.domElement );
 
         window.addEventListener( 'resize', onWindowResize, false );
         window.addEventListener( 'keydown', keydown, false );
@@ -133,28 +135,13 @@
 
         objectControls = new ObjectControls( camera );
 
-        var light1 = new THREE.Mesh( 
-          new THREE.IcosahedronGeometry( .03 , 1 ),
-          new THREE.MeshBasicMaterial()
-        );
-
-        uniforms.lightPosition1.value = light1.position;
-
-
-        var light2 = new THREE.Mesh( 
-          new THREE.IcosahedronGeometry( .03 , 1 ),
-          new THREE.MeshBasicMaterial()
-        );
-
-        uniforms.lightPosition2.value = light2.position;
-        //scene.add( light );
 
 
         var geo = new THREE.IcosahedronGeometry( 2.5 , 2 );
         var position = new THREE.Vector3(0,0,0 );
         var textPosition = new THREE.Vector3( 0 , -1 , 3 );
 
-        tree = new Link( geo , uniforms , shaders.fs.tree , "http://twitter.com/lukexi" , "Tree Computer Inc." , position, textPosition ) 
+        tree = new Link( geo , uniforms , shaders.fs.tree , mainClick , "Tree Computer Inc." , position, textPosition ) 
 
 
 
@@ -166,23 +153,41 @@
         var position = new THREE.Vector3( 4 , 2 , .8 );
         var textPosition = new THREE.Vector3( 0 , -.6 , 0);
 
-        tweet = new Link( geo , uniforms , shaders.fs.holo , "http://twitter.com/lukexi" , "Tweet Luke & Isaac" , position,textPosition )
+        var lightColor = new THREE.Vector3( 1 , 0 , 0 );
+
+        uniforms.lightColor1.value.copy( lightColor );
+        tweet = new Link( geo , uniforms , shaders.fs.holo , function(){window.open( 'http://twitter.com/lukexi' , '_blank' );}, "Tweet Luke & Isaac" , position,textPosition , lightColor )
  
-        light1.position.copy( position )
+ 
 
 
         var position = new THREE.Vector3( -3 , 1.5 , 2.8 );
         var textPosition = new THREE.Vector3( 0 , -.6 , 0);
+        var lightColor = new THREE.Vector3( 0 , 0 , 1 );
+        uniforms.lightColor2.value.copy( lightColor );
 
-        tweet = new Link( geo , uniforms , shaders.fs.holo ,  "mailto:who@tree.is" , "Email Luke & Isaac" , position,textPosition );
+        email = new Link( geo , uniforms , shaders.fs.holo ,  function(){window.open( 'mailto:who@tree.is'  , '_blank' );}, "Email Luke & Isaac" , position,textPosition,  lightColor  );
  
-        light2.position.copy( position )
 
 
 
 
       }
 
+      function mainClick(){
+
+        console.log( 'HEY' ); 
+
+        var color1 = new THREE.Vector3( Math.random() , Math.random() , Math.random() );
+        var color2 = new THREE.Vector3( Math.random() , Math.random() , Math.random() );
+
+        uniforms.lightColor1.value.copy( color1 );
+        uniforms.lightColor2.value.copy( color2 );
+
+        tweet.updateColor( color1 );
+        email.updateColor( color2 );
+
+      }
       
       function animate(){
 
@@ -198,6 +203,24 @@
         stats.update();
         uniforms.dT.value = clock.getDelta();
         uniforms.time.value += uniforms.dT.value;
+
+        tweet.mesh.position.x = 3 * Math.cos( uniforms.time.value * .4 + Math.PI * 0 );
+        tweet.mesh.position.z = 3 * Math.sin( uniforms.time.value * .4 + Math.PI * 0 );
+        tweet.mesh.rotation.x += .001 * Math.sin( tweet.mesh.position.x )
+        tweet.mesh.rotation.y += .001 * Math.sin( tweet.mesh.position.y )
+        tweet.mesh.rotation.z += .001 * Math.sin( tweet.mesh.position.z )
+        tweet.update();
+
+        uniforms.lightPosition1.value.copy( tweet.mesh.position );
+
+        email.mesh.position.x = 3 * Math.cos( uniforms.time.value * .4 + Math.PI * 1 );
+        email.mesh.position.z = 3 * Math.sin( uniforms.time.value * .4 + Math.PI * 1 );
+        email.mesh.rotation.x += .001 * Math.sin( email.mesh.position.x )
+        email.mesh.rotation.y += .001 * Math.sin( email.mesh.position.y )
+        email.mesh.rotation.z += .001 * Math.sin( email.mesh.position.z )
+        email.update();
+
+        uniforms.lightPosition2.value.copy( email.mesh.position );
 
 
         controls.update();

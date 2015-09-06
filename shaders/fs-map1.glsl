@@ -7,6 +7,8 @@ uniform float parameter4;
 uniform float parameter5;
 uniform float parameter6;
 
+uniform vec3 color;
+
 varying vec3 vPos;
 varying vec3 vCam;
 varying vec3 vNorm;
@@ -132,7 +134,7 @@ float sdBlob2( vec3 p ){
  
   vec3 pos = p;
 
-  return length( p ) - .2 + .3 * .2 * sin( parameter4 )*sin(300.0 * sin(parameter1 ) *pos.x * sin( length(pos) ))*sin(200.0*sin( parameter2 ) *pos.y )*sin(50.0 * sin( parameter3 * 4. )*pos.z);
+  return length( p ) - .35 + .06 *sin(30.0 * sin( parameter3 ) * pos.x * sin( length(pos) ))*sin(20.0 *pos.y* sin( parameter4 + 1. ) )*sin(30.0 * sin( 4. * sin( parameter5 ))*pos.z);
 
 }
 
@@ -288,7 +290,7 @@ void main(){
 
   vec3 ro = vPos;
   vec3 rdI = normalize( vPos - vCam );
-  vec3 rd = refract( rdI , vNorm , 1. / 1.5 );
+  vec3 rd = refract( rdI , vNorm , 1. / 1. );
 
   vec2 res = calcIntersection( ro , rd );
 
@@ -316,7 +318,7 @@ void main(){
 
     col += vec3( 1. ,0. , 0. ) * light1.x +   vec3( 1.5 ,0.4 , 0. ) * pow( light1.y , 40. );
     col += vec3( 0. ,0. , 1. ) * light2.x +   vec3( .0 ,0.4 , 1.5 ) * pow( light2.y, 40. );
-    col *= AO;
+    col = color * vec3( AO * AO * AO );// vec3( pow( 1. - AO  , .5 ) );
 
 
   

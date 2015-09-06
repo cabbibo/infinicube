@@ -8,12 +8,17 @@ uniform float parameter4;
 uniform float parameter5;
 uniform float parameter6;
 
+uniform vec3 lightColor1;
+uniform vec3 lightColor2;
+
 varying vec3 vPos;
 varying vec3 vCam;
 varying vec3 vNorm;
 
 varying vec3 vLight1;
 varying vec3 vLight2;
+
+
 
 varying vec2 vUv;
 
@@ -108,6 +113,9 @@ vec2 map( vec3 pos ){
     //vec2 res = vec2( sdCappedCylinder( p.xyz , vec2( trunkSize * bs , bs )),1.);
     vec2 res = vec2( length(p.xyz + vec3( 0., 6. , 0. )) - 6. , 1. );
 
+      //  res = smoothU( res, vec2( length( p.xyz - vLight1 + vec3( 0., .3 , 0. )) - .3 ,10. ) , .1);
+      //  res = smoothU( res, vec2( length( p.xyz - vLight2+ vec3( 0., .3 , 0. )) - .3 ,100. ), .1);
+
     res = smoothU( res , vec2(sdCappedCylinder( p.xyz , vec2( trunkSize * bs , bs )),1.), .1);
     
     for( int i = 0; i < 4; i ++ ){
@@ -120,6 +128,8 @@ vec2 map( vec3 pos ){
 
         res = smoothU( res , vec2( sdCappedCylinder( p.xyz , vec2( trunkSize * bs , bs )),1.) , .1);
     }
+
+
 
     return res;
     
@@ -251,63 +261,22 @@ void main(){
 
     float AO = calcAO( pos , norm );
 
-    /*col += hsv( AO , 1. , 1. ) * vec3(  pow((1. - AO) , 3. ) );
-    col += hsv( light1.y * 4. , 1. , 1. ) * pow( light1.y , 10. );
-    col += hsv( light2.y * 3. + .5 , 1. , 1. ) * pow( light2.y , 10. );*/
 
-    col += vec3( 1. ,0. , 0. ) * light1.x +   vec3( 1.5 ,0.4 , 0. ) * pow( light1.y , 40. );
-    col += vec3( 0. ,0. , 1. ) * light2.x +   vec3( .0 ,0.4 , 1.5 ) * pow( light2.y, 40. );
+    col += lightColor1 * light1.x + lightColor1 * 2. * pow( light1.y , 40. );
+    col += lightColor2 * light2.x + lightColor2 * 2. * pow( light2.y, 40. );
     col *= AO;
 
 
     opacity += 1.;
 
 
-
-    /*col = vec3( spec, 0. , lamb);
-
-
-    float val = smoothstep( .5 , .55 , lamb ) - .5;
-    val *= 2.;
-    col = vec3( val );*/
-    //col = hsv( spec , .65 , 1. );
-
-    //col = hsv( sin( lamb * 100. ) , .65 , 1. );
-    //col = lamb * vec3( 1. , 0. , 0. ) + pow( spec , 10.) * vec3( 0. , 0. , 1. );// norm * .5 +.5;
-     //col = doCol( lamb , spec );
   }else{
-/*
-    if( dot( vNorm , -rdI ) < .3 ){ 
-      col = vNorm * .5 + .5;
-      opacity = 1.; 
-    }else{
-      //discard;
-    }*/
 
-    /*if( vUv.x < .05 || vUv.x > .95 || vUv.y < .05 || vUv.y > .95 ){
-
-      col += doCol( lamb , spec );
-      col += vec3( .3 , .3 , .3 );
-      opacity = 1.;
-    }else{
-
-     // discard;
-    }*/
   }
 
 
-
-  //vec3 col = vec3( 2. - length( texture2D( t_iri , vUv * 4. - vec2( 1.5 ) ) ));
-
-  //vec3 col = vec3( hit );
-
-  //col = vCam * .5 + .5;
-
-
-  //gl_FragColor = vec4(vec3(length( col)) , 1. );
-
  
-  gl_FragColor = vec4( col , opacity );
+  gl_FragColor = vec4( col ,1.);// opacity );
 
 
 
