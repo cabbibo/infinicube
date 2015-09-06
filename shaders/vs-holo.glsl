@@ -1,9 +1,11 @@
 
 uniform mat4 iModelMat;
-uniform vec3 lightPosition;
+uniform vec3 lightPosition1;
+uniform vec3 lightPosition2;
 
 varying vec3 vPos;
-varying vec3 vLight;
+varying vec3 vLight1;
+varying vec3 vLight2;
 varying vec3 vNorm;
 varying vec3 vCam;
 
@@ -18,7 +20,8 @@ void main(){
   vNorm = normal;
 
   vCam   = ( iModelMat * vec4( cameraPosition , 1. ) ).xyz;
-  vLight = ( iModelMat * vec4( lightPosition , 1. ) ).xyz;
+  vLight1 = ( iModelMat * vec4( lightPosition1 , 1. ) ).xyz;
+  vLight2 = ( iModelMat * vec4( lightPosition2 , 1. ) ).xyz;
   //vLight = ( iModelMat * vec4(  vec3( 400. , 1000. , 400. ) , 1. ) ).xyz;
 
 

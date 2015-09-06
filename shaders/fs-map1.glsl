@@ -11,7 +11,8 @@ varying vec3 vPos;
 varying vec3 vCam;
 varying vec3 vNorm;
 
-varying vec3 vLight;
+varying vec3 vLight1;
+varying vec3 vLight2;
 
 varying vec2 vUv;
 
@@ -250,22 +251,34 @@ float calcAO( in vec3 pos, in vec3 nor )
 }*/
 
 
-/*vec3 doCol( float lamb , float spec ){
+vec3 doCol( float lamb , float spec ){
 
   float nSpec= pow( spec , abs(sin(parameter1 * 1.1))* 10. + 2. );
   return
       hsv( lamb * .3 + parameter2 , abs( sin( parameter6 )) * .2 + .6 , abs( sin( parameter2 ) * .4 + .6 )) * lamb 
     + hsv( nSpec * .6 + parameter3 , abs( sin( parameter5 )) * .4 + .6 , abs( sin( parameter4 ) * .3 + .8 )) * nSpec;
-}*/
+}
 
-
+/*
 vec3 doCol( float lamb , float spec ){
 
   float nSpec= pow( spec , 300. );
   return
       ( lamb * .5 + nSpec * 1.) * vec3( 1. );
-}
+}*/
 
+vec2 doLight( vec3 lightPos , vec3 pos , vec3 norm , vec3 eyeDir ){
+
+  vec3 lightDir = normalize( lightPos - pos );
+  vec3 reflDir  = reflect( lightDir , norm );
+
+
+  float lamb = max( 0. , dot( lightDir ,    norm ) );
+  float spec = max( 0. , dot( reflDir  , -eyeDir ) );
+
+  return vec2( lamb , spec );
+
+}
 
 
 
@@ -277,65 +290,36 @@ void main(){
   vec3 rdI = normalize( vPos - vCam );
   vec3 rd = refract( rdI , vNorm , 1. / 1.5 );
 
-  vec3 lightDir = normalize( vLight - ro );
-
   vec2 res = calcIntersection( ro , rd );
 
-  vec3 reflDir = reflect( lightDir , rd  );
+  vec2 light1 = doLight( vLight1 , ro , vNorm , rd );
 
-  float lamb = max( dot( vNorm , lightDir), 0.);
-  float spec = max( dot( reflDir , rd ), 0.);
+  vec3 col = doCol( light1.x , light1.y );// * lamb * spec * 3.; //-vNorm * .5 + .5;
 
-
-  float iLamb = max( dot( -vNorm , lightDir), 0.);
-  vec3  iReflDir = reflect( lightDir , -vNorm );
-  float iSpec = max( dot( iReflDir , rd ), 0.);
-
-
-  vec3 col = doCol( lamb , iSpec );// * lamb * spec * 3.; //-vNorm * .5 + .5;
-
+  col = vec3( 0. );
   float opacity = length( col );
   
   if( res.y > .5 ){
 
     vec3 pos = ro + rd * res.x;
-
-    vec3 lightDir = normalize( vLight - pos);
-    vec3 norm;
-
-    if( res.y == 3.){
-      norm = calcNoiseNormal( pos );
-    }else{
-      norm = calcNormal( pos );
-    }
-    vec3 reflDir = reflect( lightDir , norm );
-
-    float lamb = max( dot( norm , lightDir), 0.);
-    float spec = max( dot( reflDir , rd ), 0.);
-
-    spec = pow( spec , 10. );
+    vec3 norm = calcNormal( pos );
 
     float AO = calcAO( pos , norm );
 
+    vec2 light1 = doLight( vLight1 , pos , norm , rd );
+    vec2 light2 = doLight( vLight2 , pos , norm , rd );
 
-    col = vec3( AO * AO * AO );
-    col += hsv( spec , 1. , 1. ) * spec * 100.;
+
+    //col += hsv( spec , 1. , 1. ) * spec * 100.;
 
     opacity += 1.;
 
+    col += vec3( 1. ,0. , 0. ) * light1.x +   vec3( 1.5 ,0.4 , 0. ) * pow( light1.y , 40. );
+    col += vec3( 0. ,0. , 1. ) * light2.x +   vec3( .0 ,0.4 , 1.5 ) * pow( light2.y, 40. );
+    col *= AO;
 
 
-    /*col = vec3( spec, 0. , lamb);
-
-
-    float val = smoothstep( .5 , .55 , lamb ) - .5;
-    val *= 2.;
-    col = vec3( val );*/
-    //col = hsv( spec , .65 , 1. );
-
-    //col = hsv( sin( lamb * 100. ) , .65 , 1. );
-    //col = lamb * vec3( 1. , 0. , 0. ) + pow( spec , 10.) * vec3( 0. , 0. , 1. );// norm * .5 +.5;
-     //col = doCol( lamb , spec );
+  
   }else{
 /*
     if( dot( vNorm , -rdI ) < .3 ){ 

@@ -12,7 +12,8 @@ varying vec3 vPos;
 varying vec3 vCam;
 varying vec3 vNorm;
 
-varying vec3 vLight;
+varying vec3 vLight1;
+varying vec3 vLight2;
 
 varying vec2 vUv;
 
@@ -20,9 +21,9 @@ varying vec2 vUv;
 // Branch Code stolen from : https://www.shadertoy.com/view/ltlSRl
 // Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License
 
-const float MAX_TRACE_DISTANCE = 10.0;             // max trace distance
-const float INTERSECTION_PRECISION = 0.001;        // precision of the intersection
-const int NUM_OF_TRACE_STEPS = 100;
+const float MAX_TRACE_DISTANCE = 5.0;             // max trace distance
+const float INTERSECTION_PRECISION = 0.01;        // precision of the intersection
+const int NUM_OF_TRACE_STEPS = 20;
 const float PI = 3.14159;
 
 vec3 hsv(float h, float s, float v){
@@ -205,6 +206,19 @@ vec2 calcIntersection( in vec3 ro, in vec3 rd ){
 }
 
 
+vec2 doLight( vec3 lightPos , vec3 pos , vec3 norm , vec3 eyeDir ){
+
+  vec3 lightDir = normalize( lightPos - pos );
+  vec3 reflDir  = reflect( lightDir , norm );
+
+
+  float lamb = max( 0. , dot( lightDir ,    norm ) );
+  float spec = max( 0. , dot( reflDir  , eyeDir ) );
+
+  return vec2( lamb , spec );
+
+}
+
 
 void main(){
 
@@ -212,30 +226,12 @@ void main(){
   vec3 rdI = normalize( vPos - vCam );
   vec3 rd = refract( rdI , vNorm , 1. / 1.5 );
 
-  vec3 lightDir = normalize( vLight - ro );
-
   vec2 res = calcIntersection( ro , rd );
 
-  vec3 reflDir = reflect( lightDir , rdI  );
-
-  float lamb = max( dot( vNorm , lightDir), 0.);
-  float spec = max( dot( reflDir , rd ), 0.);
-
-
-  float iLamb = max( dot( -vNorm , lightDir), 0.);
-  vec3  iReflDir = reflect( lightDir , -vNorm );
-  float iSpec = max( dot( iReflDir , rd ), 0.);
-
+  vec2 light1 = doLight( vLight1 , ro , vNorm , rdI );
+  vec2 light2 = doLight( vLight2 , ro , vNorm , rdI );
 
   vec3 col = vec3( 0. );
-  //vec3 col = vec3( lamb  * .2 + pow( iSpec, 10. ) );
-
- // col += hsv(pow( iSpec, 30. ) * .4 , 1. , 1. ) *  pow( iSpec, 30. );
-
-  //float fresnel = max( 0. , .1 -  pow( -dot( rd , vNorm ), 10.)) * 10.;
-  //col += hsv( fresnel * 3. , 1. , 1. ) *  fresnel; //vec3(  max( 0. , .1 -  pow( -dot( rd , vNorm ), 10.)) * 10.,0., 0.);
-
-  //doCol( lamb , iSpec );// * lamb * spec * 3.; //-vNorm * .5 + .5;
 
   float opacity = length( col );
   
@@ -243,25 +239,25 @@ void main(){
 
     vec3 pos = ro + rd * res.x;
 
-    vec3 lightDir = normalize( vLight - pos);
+    vec3 lightDir = normalize( vLight1 - pos);
     vec3 norm;
 
     
     norm = calcNormal( pos );
     
-    vec3 reflDir = reflect( lightDir , norm );
+    light1 = doLight( vLight1 , pos , norm , rd );
+    light2 = doLight( vLight2 , pos , norm , rd );
 
-    float lamb = max( dot( norm , lightDir), 0.);
-    float spec = max( dot( reflDir , rd ), 0.);
-
-    spec = pow( spec , 100. );
 
     float AO = calcAO( pos , norm );
 
+    /*col += hsv( AO , 1. , 1. ) * vec3(  pow((1. - AO) , 3. ) );
+    col += hsv( light1.y * 4. , 1. , 1. ) * pow( light1.y , 10. );
+    col += hsv( light2.y * 3. + .5 , 1. , 1. ) * pow( light2.y , 10. );*/
 
-    col += vec3( AO * AO * AO );
-
-     col += hsv( spec , 1. , 1. ) * spec * 100.;
+    col += vec3( 1. ,0. , 0. ) * light1.x +   vec3( 1.5 ,0.4 , 0. ) * pow( light1.y , 40. );
+    col += vec3( 0. ,0. , 1. ) * light2.x +   vec3( .0 ,0.4 , 1.5 ) * pow( light2.y, 40. );
+    col *= AO;
 
 
     opacity += 1.;

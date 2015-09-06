@@ -5,7 +5,7 @@
       body{ margin: 0px; }
       html{ overflow: hidden }
       h1{
-        color:#fff;
+        color:#111;
         position:absolute;
         width:100%;
         bottom:20%;
@@ -15,20 +15,24 @@
       h1:hover{
 
         text-decoration: underline;
+        color:#666;
       }
     </style>
   </head>
 
   <body>
-    <a href="mailto:who@tree.is"><h1> TREE COMPUTERS INC. </h1></a>
-
+ 
     <script src = "lib/three.min.js"                ></script>
     <script src = "lib/jquery.min.js"               ></script>
     <script src = "lib/ShaderLoader.js"             ></script>
     <script src = "lib/stats.min.js"                ></script>
 
     <script src = "lib/TrackballControls.js"        ></script>
-    <script src = "MouseMoveControls.js"        ></script>
+    <script src = "lib/MouseMoveControls.js"        ></script>
+    <script src = "lib/ObjectControls.js"           ></script>
+    
+
+    <script src = "lib/Link.js"           ></script>
 
 
 
@@ -37,7 +41,6 @@
 
     var frameSlow = 6;
     var counter = 0;
-    var holos = [];
 
     var moving = false;
 
@@ -55,7 +58,7 @@
 
       shaders.load( 'vs-holo' , 'holo' , 'vertex'   );
       //shaders.load( 'fs-holo' , 'holo' , 'fragment' );
-      //shaders.load( 'fs-map1' , 'holo' , 'fragment' );
+      shaders.load( 'fs-map1' , 'holo' , 'fragment' );
       shaders.load( 'fs-tree' , 'tree' , 'fragment' );
       //shaders.load( 'fs-bg' , 'bg' , 'fragment' );
 
@@ -67,7 +70,8 @@
         time:     { type:"f"  , value : 0             },
         
 
-        lightPosition: { type:"v3" , value : null          },
+        lightPosition1: { type:"v3" , value : null          },
+        lightPosition2: { type:"v3" , value : null          },
        
 
 
@@ -83,6 +87,9 @@
 
       function init(){
 
+        //textCreator = new TextCreator( 3 );
+
+
         /*
 
 
@@ -95,7 +102,7 @@
         var h = window.innerHeight;
 
         camera = new THREE.PerspectiveCamera( 65 , w/h , .1 , 20 );
-        camera.position.z = 9.5;
+        camera.position.z = 6.5;
         //camera.position.x = 3.5;
 
         scene = new THREE.Scene();
@@ -113,7 +120,7 @@
         stats.domElement.style.left = "0px";
         stats.domElement.style.bottom = "-30px";
         stats.domElement.style.zIndex = "999";
-        //document.body.appendChild( stats.domElement );
+        document.body.appendChild( stats.domElement );
 
         window.addEventListener( 'resize', onWindowResize, false );
         window.addEventListener( 'keydown', keydown, false );
@@ -122,68 +129,54 @@
 
 
         controls = new THREE.MouseMoveControls( camera );
+        //controls = new THREE.TrackballControls( camera );
 
-        var light = new THREE.Mesh( 
+        objectControls = new ObjectControls( camera );
+
+        var light1 = new THREE.Mesh( 
           new THREE.IcosahedronGeometry( .03 , 1 ),
           new THREE.MeshBasicMaterial()
         );
 
-        light.position.x = 2;
-        light.position.y = 2;
-        light.position.z = 2;
+        uniforms.lightPosition1.value = light1.position;
 
-        uniforms.lightPosition.value = light.position;
+
+        var light2 = new THREE.Mesh( 
+          new THREE.IcosahedronGeometry( .03 , 1 ),
+          new THREE.MeshBasicMaterial()
+        );
+
+        uniforms.lightPosition2.value = light2.position;
         //scene.add( light );
 
 
         var geo = new THREE.IcosahedronGeometry( 2.5 , 2 );
+        var position = new THREE.Vector3(0,0,0 );
+        var textPosition = new THREE.Vector3( 0 , -1 , 3 );
 
-        var mat = new THREE.ShaderMaterial({
+        tree = new Link( geo , uniforms , shaders.fs.tree , "http://twitter.com/lukexi" , "Tree Computer Inc." , position, textPosition ) 
 
-          uniforms: {
 
-            time:          uniforms.time,
-            lightPosition: uniforms.lightPosition,
-     
-            parameter1: { type:"f"  , value : .5 },
-            parameter2: { type:"f"  , value : .5 },
-            parameter3: { type:"f"  , value : .5 },
-            parameter4: { type:"f"  , value : .5 },
-            parameter5: { type:"f"  , value : .5 },
-            parameter6: { type:"f"  , value : .5 },
 
-            iModelMat:{ type:"m4" , value: new THREE.Matrix4() },
 
-          },
-          vertexShader: shaders.vs.holo,
-          fragmentShader: shaders.fs.tree,
-          transparent: true,
-          shading: THREE.FlatShading,
-          //side: THREE.DoubleSide
-         // blending: THREE.AdditiveBlending
 
-        }); 
-        var tree = new THREE.Mesh( geo , mat );
-        scene.add( tree ); 
+        var geo = new THREE.IcosahedronGeometry( .5 , 2 );
 
-        tree.update = function(){
 
-          this.updateMatrixWorld();
-          this.material.uniforms.iModelMat.value.getInverse( this.matrixWorld );
-          
-          this.material.uniforms.parameter1.value = this.position.x;
-          this.material.uniforms.parameter2.value = this.position.y;
-          this.material.uniforms.parameter3.value = this.position.z;
-          
-          this.material.uniforms.parameter4.value = this.rotation.x;
-          this.material.uniforms.parameter5.value = this.rotation.y;
-          this.material.uniforms.parameter6.value = this.rotation.z;
+        var position = new THREE.Vector3( 4 , 2 , .8 );
+        var textPosition = new THREE.Vector3( 0 , -.6 , 0);
 
-        }.bind( tree );
+        tweet = new Link( geo , uniforms , shaders.fs.holo , "http://twitter.com/lukexi" , "Tweet Luke & Isaac" , position,textPosition )
+ 
+        light1.position.copy( position )
 
-        tree.update();
 
-     
+        var position = new THREE.Vector3( -3 , 1.5 , 2.8 );
+        var textPosition = new THREE.Vector3( 0 , -.6 , 0);
+
+        tweet = new Link( geo , uniforms , shaders.fs.holo ,  "mailto:who@tree.is" , "Email Luke & Isaac" , position,textPosition );
+ 
+        light2.position.copy( position )
 
 
 
@@ -206,52 +199,9 @@
         uniforms.dT.value = clock.getDelta();
         uniforms.time.value += uniforms.dT.value;
 
-        if( moving ){
-
-        var ave = [0,0,0,0,0,0];
-
-          for( var i = 0; i < 10; i++ ){
-            var holo = holos[i];
-            holo.rotation.x += uniforms.dT.value * .1   * Math.sin( i+1 );
-            holo.rotation.y += uniforms.dT.value * .139 * Math.sin( i+1 );
-            holo.rotation.z += uniforms.dT.value * .21  * Math.sin( i+1 );
-
-            holo.position.x = Math.sin( uniforms.time.value * Math.sin( i+1 ) * .1 );
-            holo.position.y = Math.sin( uniforms.time.value * Math.sin( i+1 ) * .31 );
-            holo.position.z = Math.sin( uniforms.time.value * Math.sin( i+1 ) * .71 );
-
-            ave[0] += holo.position.x; 
-            ave[1] += holo.position.y; 
-            ave[2] += holo.position.z; 
-            ave[3] += holo.rotation.x; 
-            ave[4] += holo.rotation.y; 
-            ave[5] += holo.rotation.z; 
-
-            holo.update();
-          }
-
-          for( var i = 0; i< ave.length; i++ ){
-            ave[i] /= 10;
-          }
-
-          bg.material.uniforms.parameter1.value = ave[0];
-          bg.material.uniforms.parameter2.value = ave[1];
-          bg.material.uniforms.parameter3.value = ave[2];
-          bg.material.uniforms.parameter4.value = ave[3];
-          bg.material.uniforms.parameter5.value = ave[4];
-          bg.material.uniforms.parameter6.value = ave[5];
-
-        }
-
-        /*uniforms.parameter1.value += .01 * Math.sin( uniforms.time.value  * .1);
-        uniforms.parameter2.value += .01 * Math.sin( uniforms.time.value  * .37);
-        uniforms.parameter3.value += .01 * Math.sin( uniforms.time.value  * .015);
-        uniforms.parameter4.value += .01 * Math.sin( uniforms.time.value  * .22);
-        uniforms.parameter5.value += .01 * Math.sin( uniforms.time.value  * .72);
-        uniforms.parameter6.value += .01 * Math.sin( uniforms.time.value  * .13);*/
-
 
         controls.update();
+        objectControls.update();
 
 
       }
@@ -300,6 +250,83 @@
 				renderer.setSize( window.innerWidth, window.innerHeight );
 
 			}
+
+
+      function createTextMesh( size  ,  text ){
+    
+        var canvas  = document.createElement('canvas');
+
+
+        var fullSize = 30000;
+        var margin = 40;
+
+        var ctx     = canvas.getContext( '2d' ); 
+
+
+        ctx.font      = fullSize / 100 + "pt GeoSans";
+        var textWidth = ctx.measureText( text ).width;
+
+        canvas.width  = textWidth + margin;
+        canvas.height = fullSize / 100 + margin;
+
+       
+        // Creates a texture
+        var texture = new THREE.Texture(canvas);
+
+
+        updateTextTexture( text , canvas , ctx , texture , textWidth )
+
+
+        var mesh = new THREE.Mesh( 
+          new THREE.PlaneBufferGeometry( 1 , 1 ), 
+          new THREE.MeshBasicMaterial({ 
+            map: texture,
+            transparent: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+
+          })
+        );
+
+        mesh.scale.y = canvas.height;
+        mesh.scale.x = canvas.width;
+        mesh.scale.multiplyScalar( .1  * (size / 100));
+
+        mesh.texture = texture;
+        mesh.canvas = canvas;
+        mesh.ctx = ctx;
+        mesh.textWidth = textWidth;
+
+        return mesh;
+
+
+      }
+
+      function updateTextTexture( string , canvas , ctx , texture , textWidth ){
+
+        var fullSize = 30000;
+        var margin = 1000000;
+
+        ctx.fillStyle = "rgba(0,0,0,1)";
+        ctx.fillRect(
+            canvas.width / 2 - textWidth / 2 - margin / 2, 
+            canvas.height / 2 - fullSize / 2  + margin / 2, 
+            textWidth + margin, 
+            fullSize + margin
+        );
+
+        // Makes sure our text is centered
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#ffffff";
+        ctx.font      = fullSize / 150 + "pt Trebuchet MS";
+        ctx.fillText( string , canvas.width / 2, canvas.height / 2);
+
+
+        texture.needsUpdate = true;
+
+
+      }
 
 
 
