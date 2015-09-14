@@ -23,6 +23,11 @@ varying vec3 vLight2;
 
 varying vec2 vUv;
 
+mat4 palette1;
+mat4 palette2;
+mat4 palette3;
+
+
 
 
 const float MAX_TRACE_DISTANCE = 5.;           // max trace distance
@@ -31,37 +36,6 @@ const int NUM_OF_TRACE_STEPS = 20;
 
 vec3 sunPos; 
 
-
-
-vec3 hsv(float h, float s, float v){
-        return mix( vec3( 1.0 ), clamp(( abs( fract(h + vec3( 3.0, 2.0, 1.0 ) / 3.0 )
-                   * 6.0 - 3.0 ) - 1.0 ), 0.0, 1.0 ), s ) * v;
-      }
-
-
-
-vec2 opU( vec2 d1, vec2 d2 )
-{
-    return  d1.x < d2.x ? d1 : d2 ;
-}
-
-float sdBox( vec3 p, vec3 b )
-{
-  vec3 d = abs(p) - b;
-  return min(max(d.x,max(d.y,d.z)),0.0) +
-         length(max(d,0.0));
-}
-
-float udBox( vec3 p, vec3 b )
-{
-  return length(max(abs(p)-b,0.0));
-}
-
-
-float udRoundBox( vec3 p, vec3 b, float r )
-{
-  return length(max(abs(p)-b,0.0))-r;
-}
 
 
 float sdSphere( vec3 p, float s )
@@ -76,11 +50,6 @@ float opRepSphere( vec3 p, vec3 c , float r)
 }
 
 
-float opRepBox( vec3 p, vec3 c , float r)
-{
-    vec3 q = mod(p,c)-0.5*c;
-    return sdBox( q  ,vec3( r ));
-}
 
 vec2 smoothU( vec2 d1, vec2 d2, float k)
 {
@@ -92,18 +61,6 @@ vec2 smoothU( vec2 d1, vec2 d2, float k)
 
 
 
-// Using SDF from IQ's two tweet shadertoy : 
-// https://www.shadertoy.com/view/MsfGzM
-float sdBlob( vec3 p ){
-
-  return length(
-    .05 * cos( 9. * (sin( parameter1 )+ 1.) * p.y * p.x )
-    + cos(p) * (sin( parameter2 ) * .01 + 1.) 
-    -.1 * cos( 9. * ( p.z + .3 * (sin(parameter3) + 1.)   * p.x - p.y * (sin( parameter4 )+ 1.)   ) ) )
-    -1.; 
-
-}
-
 
 float sphereField( vec3 p ){
 
@@ -113,114 +70,26 @@ float sphereField( vec3 p ){
 }
 
 
-float cubeField( vec3 p ){
-
-  float fieldSize = 1.  + abs( sin( parameter5) ) * 1.;
-  return opRepBox( p , vec3(fieldSize ), .3 + parameter4 * .05  );
-
-}
-
-float sdBlob2( vec3 p ){
- 
-  vec3 pos = p;
-
-  return length( p ) - .2 + .3 * .2 * sin( parameter4 )*sin(300.0 * sin(parameter1 ) *pos.x * sin( length(pos) ))*sin(200.0*sin( parameter2 ) *pos.y )*sin(50.0 * sin( parameter3 * 4. )*pos.z);
-
-}
-
-
-mat4 rotateX(float angle){
-    
-  angle = -angle/180.0*3.1415926536;
-    float c = cos(angle);
-    float s = sin(angle);
-  return mat4(1.0, 0.0, 0.0, 0.0, 0.0, c, -s, 0.0, 0.0, s, c, 0.0, 0.0, 0.0, 0.0, 1.0);
-    
-}
-
-mat4 rotateY(float angle){
-    
-  angle = -angle/180.0*3.1415926536;
-    float c = cos(angle);
-    float s = sin(angle);
-  return mat4(c, 0.0, s, 0.0, 0.0, 1.0, 0.0, 0.0, -s, 0.0, c, 0.0, 0.0, 0.0, 0.0, 1.0);
-    
-}
-
-mat4 rotateZ(float angle){
-    
-  angle = -angle/180.0*3.1415926536;
-    float c = cos(angle);
-    float s = sin(angle);
-  return mat4(c, -s, 0.0, 0.0, s, c, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
-    
-}
-
-mat4 translate(vec3 t){
-    
-  return mat4(1.0, 0.0, 0.0, -t.x, 0.0, 1.0, 0.0, -t.y, 0.0, 0.0, 1.0, -t.z, 0.0, 0.0, 0.0, 1.0);
-    
-}
-
 
 vec3 palette( in float t, in vec3 a, in vec3 b, in vec3 c, in vec3 d )
 {
     return a + b*cos( 6.28318*(c*t+d) );
 }
 
-float mandala( vec3 pos ){
-
-
-  vec4 p = vec4( pos.xyz , 1. );
-
-//vec3 nP = vec3( pos.x , mod( pos.y , .8 ) , pos.z )
-
-
-  vec2 res = vec2(10000.,10000.);
-
-  for( int i = 0; i < 8; i++ ){
-    float degrees = (float( i ) / 8.) * 360.;
-
-    mat4 m = rotateX(degrees) * translate(vec3(0.0,  completed * 2. , 0.0)) ;
-
-    p = vec4( pos.xyz , 1. ) * m; 
-    //p = vec4( p.x , mod( p.y , 1.) , p.z , 1.);
-
-    res = smoothU( res , vec2( length(p.xyz) - .4 , 1. ) , .2);
-
-
-
-  }
-
- // degrees = mod( degrees , 3.14159 / 10.2 );
-
- // vec3 nP = mod( p + vec3( .3 , .3 , .3 ), vec3( 1. , 1. , 1.) ); //vec3( sin( degrees ) * radius , cos( degrees ) * radius , 0. );//tan( degrees ) * radius;
-
- 
- //vec3 nP = vec3( p.x , mod( p.y , 1. ) , mod( p.z, .5 ) );
-
-  return res.x; //length(  nP ) - .3;
-
-
+vec3 doPalette( in float val , in mat4 pType ){
+  return palette( val ,  pType[0].xyz , pType[1].xyz , pType[2].xyz , pType[3].xyz );
 }
+
 
 //--------------------------------
 // Modelling 
 //--------------------------------
 vec2 map( vec3 pos ){  
    
-
-
-   //// vec2 res = vec2( opRepSphere( pos , vec3( repSize ) , radius ) , 1. );
     vec2 res = vec2( sdSphere( pos - sunPos, .6) , 1. );
     vec2 res2 = vec2( sdSphere( pos + vec3( 0., 20. , 0. ), 18. ) , 2. );
 
     res = smoothU( res , res2 , .2 );
-
-    //res2 = vec2( mandala( pos - sunPos ) , 1. );
-
-    res = smoothU( res , res2 , .2 );
-
 
     vec2 res3 =  vec2( sphereField( pos ) , 2. );
 
@@ -308,19 +177,11 @@ vec3 doBoxShading( vec2 l1 , vec2 l2 , vec3 ro ){
 
   float fillednessVal = (( ro.y + 1.5 )  / 3. ) * filledness;
 
-  vec3 a = vec3( .5 );
-  vec3 b = vec3( .5 );
-  vec3 c = vec3( 2. , 1.,  0. );
-  vec3 d = vec3( .5 , .2 , .25 );
   float spec = pow( l1.y , 40. );
-  col +=  palette( l1.x + spec * 1., a , b , c ,d ) * (  spec ) * .5;
+  col +=  doPalette( l1.x , palette1 ) * ( spec ) * .5;
 
-  a = vec3( .5 );
-  b = vec3( .5 );
-  c = vec3( 1. , 1.,  0. );
-  d = vec3( .8 , .9 , .3 );
   spec = pow( l2.y , 40. );
-  col +=  palette( l2.x + spec * 1., a , b , c ,d ) * (  spec ) * .5;
+  col +=  doPalette( l2.x , palette2 ) * ( spec ) * .5;
 
 
   float edgeSize = .05  * (1. - completed ) + .01;
@@ -336,13 +197,7 @@ vec3 doBackgroundShading( vec2 l1 , vec2 l2 , vec3 ro ){
 
   float fillednessVal = ( ro.y + 1.5 ) / 3. * filledness * ( 1. + completed );
 
-
-  vec3 a = vec3( .5 );
-  vec3 b = vec3( .5 );
-  vec3 c = vec3( 1. , 1.,  0. );
-  vec3 d = vec3( .8 , .9 , .3 );
-
-  vec3 p =  palette( fillednessVal / 2., a , b , c ,d );
+  vec3 p =  doPalette( fillednessVal / 2. , palette3 ); 
 
   vec3 col = p  * filledness* ( 1. + completed * .4 ) * .5; //* ( 1. - completed );
 
@@ -355,19 +210,11 @@ vec3 doRayShading( vec2 l1 , vec2 l2  , vec3 norm , vec3 ro ){
 
   vec3 col = vec3( 0. );
 
-  vec3 a = vec3( .5 );
-  vec3 b = vec3( .5 );
-  vec3 c = vec3( 2. , 1.,  0. );
-  vec3 d = vec3( .5 , .2 , .25 );
   float spec = pow( l1.y , 10. );
-  col +=  palette( l1.x , a , b , c ,d ) * ( l1.x + spec );
+  col +=  doPalette( l1.x , palette1 ) * ( l1.x  + spec );
 
-  a = vec3( .5 );
-  b = vec3( .5 );
-  c = vec3( 1. , 1.,  0. );
-  d = vec3( .8 , .9 , .3 );
   spec = pow( l2.y , 10. );
-  col +=  palette( l2.x , a , b , c ,d ) * ( l2.x  + spec );
+  col +=  doPalette( l2.x , palette2 ) * ( l2.x  + spec );
 
   //col += norm * .5 + .5;
 
@@ -382,6 +229,47 @@ vec3 doRayShading( vec2 l1 , vec2 l2  , vec3 norm , vec3 ro ){
 void main(){
 
   sunPos = vec3( 0. , filledness * 2. - 3. + completed * 5. , -3.6 );
+
+
+  /*palette1 = mat4( .5 , .5 , .5 , 0. 
+                 , .5 , .5 , .5 , 0.
+                 , 1. , 1. , 1. , 0.
+                 , .3 , .2 , .2 , 0.
+                 );
+
+  palette2 = mat4( .5 , .5 , .5 , 0. 
+                 , .5 , .5 , .5 , 0.
+                 , 1. , 1. , 0. , 0.
+                 , .8 , .9 , .3 , 0.
+                 );
+
+
+  palette3 = mat4( .5 , .5 , .5 , 0. 
+                 , .5 , .5 , .5 , 0.
+                 , 2. , 1. , 0. , 0.
+                 , .5 , .2 , .25 , 0.
+                 );*/
+
+
+  palette1 = mat4( .5  * ( 1. + sin( time * .5 ) * .3 ) , .5 * ( 1. + sin( time * .5 ) * .3 )  , .5 * ( 1. + sin( time * .5 ) * .3 )  , 0. 
+                 , .5  * ( 1. + sin( time * .8 ) * .3 ) , .5 * ( 1. + sin( time * .3 ) * .3 )  , .5 * ( 1. + sin( time * .19 ) * .3 )  , 0.
+                 , 1.  * ( 1. + sin( time * .2 ) * .3 ) , 1. * ( 1. + sin( time * .7 ) * .3 )  , 1. * ( 1. + sin( time * .4 ) * .3 )  , 0.
+                 , .3  * ( 1. + sin( time * .1 ) * .3 ) , .2 * ( 1. + sin( time * .9 ) * .3 )  , .2 * ( 1. + sin( time * 1.5 ) * .3 )  , 0.
+                 );
+
+  palette2 = mat4( .5 * ( 1. + sin( time * .56 ) * .3 )  , .5 * ( 1. + sin( time * .225 ) * .3 )  , .5  * ( 1. + sin( time * .111 ) * .3 ) , 0. 
+                 , .5 * ( 1. + sin( time * 1.5 ) * .3 )  , .5 * ( 1. + sin( time * .2 ) * .3 )  , .5  * ( 1. + sin( time * .3 ) * .3 ) , 0.
+                 , 1. * ( 1. + sin( time * .73 ) * .3 )  , 1. * ( 1. + sin( time * .15 ) * .3 )  , 0.  * ( 1. + sin( time * .74 ) * .3 ) , 0.
+                 , .8 * ( 1. + sin( time * 1.5 ) * .3 )  , .9 * ( 1. + sin( time * .35 ) * .3 )  , .3  * ( 1. + sin( time * .9 ) * .3 ) , 0.
+                 );
+
+
+  palette3 = mat4( .5  * ( 1. + sin( time * .86 ) * .3 )  , .5 * ( 1. + sin( time * .51 ) * .3 )  , .5  * ( 1. + sin( time * .2 ) * .3 ) , 0. 
+                 , .5  * ( 1. + sin( time * 1. ) * .3 )  , .5 * ( 1. + sin( time * .76 ) * .3 )  , .5  * ( 1. + sin( time * 1.5 ) * .3 ) , 0.
+                 , 2.  * ( 1. + sin( time * .72 ) * .3 )  , 1. * ( 1. + sin( time * .21 ) * .3 )  , 0.  * ( 1. + sin( time * .632 ) * .3 ) , 0.
+                 , .5  * ( 1. + sin( time * .11 ) * .3 )  , .2 * ( 1. + sin( time * .06 ) * .3 )  , .25 * ( 1. + sin( time * .755 ) * .3 )  , 0.
+                 );
+
 
   vec3 ro = vPos;
   vec3 rd = normalize( vPos - vCam );
