@@ -33,6 +33,7 @@
     
 
     <script src = "lib/Link.js"           ></script>
+    <script src = "tween.min.js"           ></script>
 
 
 
@@ -60,7 +61,7 @@
       //shaders.load( 'fs-holo' , 'holo' , 'fragment' );
       shaders.load( 'fs-map1' , 'holo' , 'fragment' );
       shaders.load( 'fs-tree' , 'tree' , 'fragment' );
-      //shaders.load( 'fs-bg' , 'bg' , 'fragment' );
+      shaders.load( 'fs-bg' , 'bg' , 'fragment' );
 
 
       // Normals For the Material
@@ -84,6 +85,9 @@
         parameter5: { type:"f"  , value : .5             },
         parameter6: { type:"f"  , value : .5             },
 
+        filledness :{ type:"f" , value: 0 },
+        completed  :{ type:"f" , value: 0 },
+
       }
 
 
@@ -103,8 +107,8 @@
         var w = window.innerWidth;
         var h = window.innerHeight;
 
-        camera = new THREE.PerspectiveCamera( 65 , w/h , .1 , 20 );
-        camera.position.z = 6.5;
+        camera = new THREE.PerspectiveCamera( 65 , w/h , .1 , 30 );
+        camera.position.z = .5;
         //camera.position.x = 3.5;
 
         scene = new THREE.Scene();
@@ -122,7 +126,7 @@
         stats.domElement.style.left = "0px";
         stats.domElement.style.bottom = "-30px";
         stats.domElement.style.zIndex = "999";
-        //document.body.appendChild( stats.domElement );
+        document.body.appendChild( stats.domElement );
 
         window.addEventListener( 'resize', onWindowResize, false );
         window.addEventListener( 'keydown', keydown, false );
@@ -130,8 +134,8 @@
         clock = new THREE.Clock();
 
 
-        controls = new THREE.MouseMoveControls( camera );
-        //controls = new THREE.TrackballControls( camera );
+        //controls = new THREE.MouseMoveControls( camera );
+        controls = new THREE.TrackballControls( camera );
 
         objectControls = new ObjectControls( camera );
 
@@ -141,7 +145,7 @@
         var position = new THREE.Vector3(0,0,0 );
         var textPosition = new THREE.Vector3( 0 , -1 , 3 );
 
-        tree = new Link( geo , uniforms , shaders.fs.tree , mainClick , "Tree Computer Inc." , position, textPosition ) 
+        //tree = new Link( geo , uniforms , shaders.fs.tree , mainClick , "Tree Computer Inc." , position, textPosition ) 
 
 
 
@@ -154,20 +158,72 @@
         var textPosition = new THREE.Vector3( 0 , -.6 , 0);
 
         var lightColor = new THREE.Vector3( 1 , 0 , 0 );
-
+        uniforms.lightPosition1.value.copy( position );
         uniforms.lightColor1.value.copy( lightColor );
-        tweet = new Link( geo , uniforms , shaders.fs.holo , function(){window.open( 'http://twitter.com/lukexi' , '_blank' );}, "Tweet Luke & Isaac" , position,textPosition , lightColor )
- 
+        //tweet = new Link( geo , uniforms , shaders.fs.holo , function(){window.open( 'http://twitter.com/lukexi' , '_blank' );}, "Tweet Luke & Isaac" , position,textPosition , lightColor )
+        var geo = new THREE.IcosahedronGeometry( .1 , 1 );
+        var mat = new THREE.MeshBasicMaterial({color:0xff0000})
+
+
+        light1 = new THREE.Mesh( geo , mat );
+        scene.add( light1 )
  
 
 
         var position = new THREE.Vector3( -3 , 1.5 , 2.8 );
         var textPosition = new THREE.Vector3( 0 , -.6 , 0);
         var lightColor = new THREE.Vector3( 0 , 0 , 1 );
+        uniforms.lightPosition2.value.copy( position );
         uniforms.lightColor2.value.copy( lightColor );
 
-        email = new Link( geo , uniforms , shaders.fs.holo ,  function(){window.open( 'mailto:who@tree.is'  , '_blank' );}, "Email Luke & Isaac" , position,textPosition,  lightColor  );
- 
+        var geo = new THREE.IcosahedronGeometry( .1 , 1 );
+        var mat = new THREE.MeshBasicMaterial({color:0x0000ff})
+
+        light2 = new THREE.Mesh( geo , mat )
+        scene.add( light2 )
+
+       // email = new Link( geo , uniforms , shaders.fs.holo ,  function(){window.open( 'mailto:who@tree.is'  , '_blank' );}, "Email Luke & Isaac" , position,textPosition,  lightColor  );
+
+
+
+        var geo = new THREE.BoxGeometry( 3,3,3 )
+        var position = new THREE.Vector3( -3 , 1.5 , 2.8 );
+        var textPosition = new THREE.Vector3( 0 , -.6 , 0);
+        var lightColor = new THREE.Vector3( 0 , 0 , 1 );
+
+       
+        //uniforms.lightColor2.value.copy( lightColor );
+
+        BG = new THREE.Mesh( geo , new THREE.ShaderMaterial({
+          uniforms: {
+
+            time:          uniforms.time,
+            lightPosition1: uniforms.lightPosition1,
+            lightPosition2: uniforms.lightPosition2,
+
+            filledness : uniforms.filledness,
+            completed : uniforms.completed,
+
+            parameter1: { type:"f"  , value : .5 },
+            parameter2: { type:"f"  , value : .5 },
+            parameter3: { type:"f"  , value : .5 },
+            parameter4: { type:"f"  , value : .5 },
+            parameter5: { type:"f"  , value : .5 },
+            parameter6: { type:"f"  , value : .5 },
+
+            iModelMat:{ type:"m4" , value: new THREE.Matrix4() },
+            //color: { type:"v3" , value: color },
+            lightColor1: uniforms.lightColor1,
+            lightColor2: uniforms.lightColor2,
+
+          },
+          vertexShader: shaders.vs.holo,
+          fragmentShader: shaders.fs.bg,
+          side: THREE.BackSide
+
+        }))
+
+        scene.add( BG )
 
 
 
@@ -184,14 +240,15 @@
         uniforms.lightColor1.value.copy( color1 );
         uniforms.lightColor2.value.copy( color2 );
 
-        tweet.updateColor( color1 );
-        email.updateColor( color2 );
+        //tweet.updateColor( color1 );
+        //email.updateColor( color2 );
 
       }
       
       function animate(){
 
         requestAnimationFrame( animate );
+        TWEEN.update();
 
         counter ++;
 
@@ -204,23 +261,19 @@
         uniforms.dT.value = clock.getDelta();
         uniforms.time.value += uniforms.dT.value;
 
-        tweet.mesh.position.x = 3 * Math.cos( uniforms.time.value * .4 + Math.PI * 0 );
-        tweet.mesh.position.z = 3 * Math.sin( uniforms.time.value * .4 + Math.PI * 0 );
-        tweet.mesh.rotation.x += .001 * Math.sin( tweet.mesh.position.x )
-        tweet.mesh.rotation.y += .001 * Math.sin( tweet.mesh.position.y )
-        tweet.mesh.rotation.z += .001 * Math.sin( tweet.mesh.position.z )
-        tweet.update();
+        uniforms.lightPosition1.value.x = 1 * Math.cos( uniforms.time.value * .4 + Math.PI * 0 );
+        uniforms.lightPosition1.value.z = 1 * Math.sin( uniforms.time.value * .1 + Math.PI * 0 );
+        uniforms.lightPosition1.value.y = 1 * Math.sin( uniforms.time.value * .3 + Math.PI * 0 );
+       
 
-        uniforms.lightPosition1.value.copy( tweet.mesh.position );
 
-        email.mesh.position.x = 3 * Math.cos( uniforms.time.value * .4 + Math.PI * 1 );
-        email.mesh.position.z = 3 * Math.sin( uniforms.time.value * .4 + Math.PI * 1 );
-        email.mesh.rotation.x += .001 * Math.sin( email.mesh.position.x )
-        email.mesh.rotation.y += .001 * Math.sin( email.mesh.position.y )
-        email.mesh.rotation.z += .001 * Math.sin( email.mesh.position.z )
-        email.update();
+        uniforms.lightPosition2.value.x = 1 * Math.cos( uniforms.time.value * .4 + Math.PI * 1 );
+        uniforms.lightPosition2.value.z = 1 * Math.sin( uniforms.time.value * .5 + Math.PI * 1 );
+        uniforms.lightPosition2.value.y = 1 * Math.sin( uniforms.time.value * .2 + Math.PI * 1 );
 
-        uniforms.lightPosition2.value.copy( email.mesh.position );
+        light1.position.copy( uniforms.lightPosition1.value )
+        light2.position.copy( uniforms.lightPosition2.value )
+
 
 
         controls.update();
@@ -254,7 +307,27 @@
         if( e.keyCode == 54 ){ uniforms.parameter6.value  += .1 }
         if( e.keyCode == 89 ){ uniforms.parameter6.value  -= .1 }
 
-        if( e.keyCode == 32 ){ toggleMovement(); }
+        if( e.keyCode == 32 ){ 
+
+          var addVal = 1/6;
+
+          if( uniforms.completed.value > .5 ){
+            addVal = -addVal;
+          }
+
+          new TWEEN.Tween( uniforms.filledness )
+            .to( { value: uniforms.filledness.value + addVal }, 1000 )
+            .easing( TWEEN.Easing.Exponential.InOut )
+            .start();
+
+          if( uniforms.filledness.value + 1 / 6 >= 1 ){
+            new TWEEN.Tween( uniforms.completed )
+              .to( { value: 1 }, 4000 )
+              .easing( TWEEN.Easing.Exponential.InOut )
+              .start();
+          }
+
+        }
 
       }
 
@@ -273,6 +346,11 @@
 				renderer.setSize( window.innerWidth, window.innerHeight );
 
 			}
+
+      function tweenUp(){
+
+
+      }
 
 
       function createTextMesh( size  ,  text ){
