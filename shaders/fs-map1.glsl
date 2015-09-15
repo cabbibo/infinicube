@@ -1,3 +1,4 @@
+
 uniform float time;
 
 uniform float parameter1;
@@ -7,7 +8,12 @@ uniform float parameter4;
 uniform float parameter5;
 uniform float parameter6;
 
-uniform vec3 color;
+uniform vec3 lightColor1;
+uniform vec3 lightColor2;
+
+
+uniform float filledness;
+uniform float completed;
 
 varying vec3 vPos;
 varying vec3 vCam;
@@ -16,8 +22,16 @@ varying vec3 vNorm;
 varying vec3 vLight1;
 varying vec3 vLight2;
 
+
+
 varying vec2 vUv;
 
+
+mat4 palette1;
+mat4 palette2;
+mat4 palette3;
+
+float edgeSize;
 
 
 const float MAX_TRACE_DISTANCE = 10.;           // max trace distance
@@ -132,9 +146,9 @@ float sphereField( vec3 p ){
 
 float sdBlob2( vec3 p ){
  
-  vec3 pos = p;
+  vec3 pos = p ;
 
-  return length( p ) - .35 + .06 *sin(30.0 * sin( parameter3 ) * pos.x * sin( length(pos) ))*sin(20.0 *pos.y* sin( parameter4 + 1. ) )*sin(30.0 * sin( 4. * sin( parameter5 ))*pos.z);
+  return length( p )  - .35 + .06 *sin(30.0 * sin( parameter3 ) * pos.x * sin( length(pos) ))*sin(20.0 *pos.y* sin( parameter4 + 1. ) )*sin(30.0 * sin( 4. * sin( parameter5 ))*pos.z);
 
 }
 
@@ -143,6 +157,7 @@ float sdBlob2( vec3 p ){
 //--------------------------------
 vec2 map( vec3 pos ){  
    
+
     // using super thin cube as plane
     vec3 size = vec3( 1.  , 1. , .01 );
    // vec3 rot = vec3( iGlobalTime * .1 , iGlobalTime * .4 , -iGlobalTime * .3 );
@@ -192,27 +207,16 @@ vec2 calcIntersection( in vec3 ro, in vec3 rd ){
 }
 
 
-// Calculates the normal by taking a very small distance,
-// remapping the function, and getting normal for that
-vec3 calcNoiseNormal( in vec3 pos ){
-    
-  vec3 eps = vec3( 0.001, 0.0, 0.0 );
-  vec3 nor = vec3(
-      map(pos+eps.xyy).x - map(pos-eps.xyy).x,
-      map(pos+eps.yxy).x - map(pos-eps.yxy).x,
-      map(pos+eps.yyx).x - map(pos-eps.yyx).x );
-
-  float noiseS = sin( parameter3 * 1. ) * 3. + 4.;
-  vec3 noiseNorm = vec3(
-      triNoise3D(pos*noiseS+eps.xyy, .4 ) - triNoise3D(pos*noiseS-eps.xyy, .4 ),
-      triNoise3D(pos*noiseS+eps.yxy, .4 ) - triNoise3D(pos*noiseS-eps.yxy, .4 ),
-      triNoise3D(pos*noiseS+eps.yyx, .4 ) - triNoise3D(pos*noiseS-eps.yyx, .4 ) );
-
-  nor = nor + noiseNorm * .2;
-
-
-  return normalize(nor);
+vec3 palette( in float t, in vec3 a, in vec3 b, in vec3 c, in vec3 d )
+{
+    return a + b*cos( 6.28318*(c*t+d) );
 }
+
+vec3 doPalette( in float val , in mat4 pType ){
+  return palette( val ,  pType[0].xyz , pType[1].xyz , pType[2].xyz , pType[3].xyz );
+}
+
+
 
 // Calculates the normal by taking a very small distance,
 // remapping the function, and getting normal for that
@@ -226,7 +230,6 @@ vec3 calcNormal( in vec3 pos ){
 
   return normalize(nor);
 }
-
 
 
 float calcAO( in vec3 pos, in vec3 nor )
@@ -244,30 +247,6 @@ float calcAO( in vec3 pos, in vec3 nor )
     return clamp( 1.0 - 3.0*occ, 0.0, 1.0 );    
 }
 
-/*vec3 doCol( float lamb , float spec ){
-
-  float nSpec= pow( spec , abs(sin(parameter1 * 1.1))* 10. + 2. );
-  return
-      vec3( 1. , .6 , .2 ) * hsv( parameter6 , 1. , 1. ) *  lamb //hsv( lamb , abs( sin( parameter6 )) * .2 + .6 , abs( sin( parameter2 ) * .4 + .6 )) * lamb 
-    + vec3( .3 , .6 , 1. ) *  hsv( parameter5 , 1. , 1. ) * nSpec;// hsv( nSpec , abs( sin( parameter5 )) * .4 + .6 , abs( sin( parameter4 ) * .3 + .8 )) * nSpec;
-}*/
-
-
-vec3 doCol( float lamb , float spec ){
-
-  float nSpec= pow( spec , abs(sin(parameter1 * 1.1))* 10. + 2. );
-  return
-      hsv( lamb * .3 + parameter2 , abs( sin( parameter6 )) * .2 + .6 , abs( sin( parameter2 ) * .4 + .6 )) * lamb 
-    + hsv( nSpec * .6 + parameter3 , abs( sin( parameter5 )) * .4 + .6 , abs( sin( parameter4 ) * .3 + .8 )) * nSpec;
-}
-
-/*
-vec3 doCol( float lamb , float spec ){
-
-  float nSpec= pow( spec , 300. );
-  return
-      ( lamb * .5 + nSpec * 1.) * vec3( 1. );
-}*/
 
 vec2 doLight( vec3 lightPos , vec3 pos , vec3 norm , vec3 eyeDir ){
 
@@ -275,32 +254,125 @@ vec2 doLight( vec3 lightPos , vec3 pos , vec3 norm , vec3 eyeDir ){
   vec3 reflDir  = reflect( lightDir , norm );
 
 
-  float lamb = max( 0. , dot( lightDir ,    norm ) );
-  float spec = max( 0. , dot( reflDir  , -eyeDir ) );
+  float lamb = max( 0. , dot( lightDir , norm   ) );
+  float spec = max( 0. , dot( reflDir  , eyeDir ) );
 
   return vec2( lamb , spec );
 
 }
 
 
+vec3 doBoxShading( vec2 l1 , vec2 l2 , vec3 ro ){
+
+  vec3 col = vec3( 0. );
+
+  float fillednessVal = (( ro.y + 1.5 )  / 3. ) * filledness;
+
+  float spec = pow( l1.y , 40. );
+  col +=  doPalette( l1.x , palette1 ) * ( spec ) * .5;
+
+  spec = pow( l2.y , 40. );
+  col +=  doPalette( l2.x , palette2 ) * ( spec ) * .5;
+
+
+  if( vUv.x < edgeSize || vUv.x > 1. - edgeSize || vUv.y < edgeSize || vUv.y > 1. - edgeSize ){
+    col += vec3( .3 , .3 , .3 );
+  }
+
+  return col;
+
+}
+
+vec3 doBackgroundShading( vec2 l1 , vec2 l2 , vec3 ro ){
+
+  float fillednessVal = ( ro.y + 1.5 ) / 3. * filledness * ( 1. + completed );
+
+  vec3 p =  doPalette( fillednessVal / 2. , palette3 ); 
+
+  vec3 col = p  * filledness* ( 1. - completed * 1. ) * .5; //* ( 1. - completed );
+
+  return col;
+
+}
+
+
+vec3 doRayShading( vec2 l1 , vec2 l2  , vec3 norm , vec3 ro ){
+
+  vec3 col = vec3( 0. );
+
+  float spec = pow( l1.y , 10. );
+  col +=  doPalette( l1.x , palette1 ) * ( l1.x  + spec );
+
+  spec = pow( l2.y , 10. );
+  col +=  doPalette( l2.x , palette2 ) * ( l2.x  + spec );
+
+ // col += doBackgroundShading( l1 , l2 , ro ); //}
+
+  return col;
+}
 
 
 
 void main(){
 
+  //sunPos = vec3( 0. , filledness * 2. - 3. + completed * 5. , -3.6 );
+
+
+  /*palette1 = mat4( .5 , .5 , .5 , 0. 
+                 , .5 , .5 , .5 , 0.
+                 , 1. , 1. , 1. , 0.
+                 , .3 , .2 , .2 , 0.
+                 );
+
+  palette2 = mat4( .5 , .5 , .5 , 0. 
+                 , .5 , .5 , .5 , 0.
+                 , 1. , 1. , 0. , 0.
+                 , .8 , .9 , .3 , 0.
+                 );
+
+
+  palette3 = mat4( .5 , .5 , .5 , 0. 
+                 , .5 , .5 , .5 , 0.
+                 , 2. , 1. , 0. , 0.
+                 , .5 , .2 , .25 , 0.
+                 );*/
+
+
+  edgeSize = .05  * (1. - completed ) + .01;
+
+  palette1 = mat4( .5  * ( 1. + sin( time * .5 ) * .3 ) , .5 * ( 1. + sin( time * .5 ) * .3 )  , .5 * ( 1. + sin( time * .5 ) * .3 )  , 0. 
+                 , .5  * ( 1. + sin( time * .8 ) * .3 ) , .5 * ( 1. + sin( time * .3 ) * .3 )  , .5 * ( 1. + sin( time * .19 ) * .3 )  , 0.
+                 , 1.  * ( 1. + sin( time * .2 ) * .3 ) , 1. * ( 1. + sin( time * .7 ) * .3 )  , 1. * ( 1. + sin( time * .4 ) * .3 )  , 0.
+                 , .3  * ( 1. + sin( time * .1 ) * .3 ) , .2 * ( 1. + sin( time * .9 ) * .3 )  , .2 * ( 1. + sin( time * 1.5 ) * .3 )  , 0.
+                 );
+
+  palette2 = mat4( .5 * ( 1. + sin( time * .56 ) * .3 )  , .5 * ( 1. + sin( time * .225 ) * .3 )  , .5  * ( 1. + sin( time * .111 ) * .3 ) , 0. 
+                 , .5 * ( 1. + sin( time * 1.5 ) * .3 )  , .5 * ( 1. + sin( time * .2 ) * .3 )  , .5  * ( 1. + sin( time * .3 ) * .3 ) , 0.
+                 , 1. * ( 1. + sin( time * .73 ) * .3 )  , 1. * ( 1. + sin( time * .15 ) * .3 )  , 0.  * ( 1. + sin( time * .74 ) * .3 ) , 0.
+                 , .8 * ( 1. + sin( time * 1.5 ) * .3 )  , .9 * ( 1. + sin( time * .35 ) * .3 )  , .3  * ( 1. + sin( time * .9 ) * .3 ) , 0.
+                 );
+
+
+  palette3 = mat4( .5  * ( 1. + sin( time * .86 ) * .3 )  , .5 * ( 1. + sin( time * .51 ) * .3 )  , .5  * ( 1. + sin( time * .2 ) * .3 ) , 0. 
+                 , .5  * ( 1. + sin( time * 1. ) * .3 )  , .5 * ( 1. + sin( time * .76 ) * .3 )  , .5  * ( 1. + sin( time * 1.5 ) * .3 ) , 0.
+                 , 2.  * ( 1. + sin( time * .72 ) * .3 )  , 1. * ( 1. + sin( time * .21 ) * .3 )  , 0.  * ( 1. + sin( time * .632 ) * .3 ) , 0.
+                 , .5  * ( 1. + sin( time * .11 ) * .3 )  , .2 * ( 1. + sin( time * .06 ) * .3 )  , .25 * ( 1. + sin( time * .755 ) * .3 )  , 0.
+                 );
+
+
   vec3 ro = vPos;
-  vec3 rdI = normalize( vPos - vCam );
-  vec3 rd = refract( rdI , vNorm , 1. / 1. );
+  vec3 rd = normalize( vPos - vCam );
 
   vec2 res = calcIntersection( ro , rd );
 
+
   vec2 light1 = doLight( vLight1 , ro , vNorm , rd );
+  vec2 light2 = doLight( vLight2 , ro , vNorm , rd );
 
-  vec3 col = doCol( light1.x , light1.y );// * lamb * spec * 3.; //-vNorm * .5 + .5;
+  vec3 col = vec3( 0. , 0. , 0. );
 
-  col = vec3( 0. );
-  float opacity = length( col );
-  
+  col += doBoxShading( light1 , light2 , ro );
+
   if( res.y > .5 ){
 
     vec3 pos = ro + rd * res.x;
@@ -308,56 +380,27 @@ void main(){
 
     float AO = calcAO( pos , norm );
 
-    vec2 light1 = doLight( vLight1 , pos , norm , rd );
-    vec2 light2 = doLight( vLight2 , pos , norm , rd );
+
+    light1 = doLight( vLight1 , pos , norm , rd );
+    light2 = doLight( vLight2 , pos , norm , rd );
+
+   // col += norm * .5 + .5;
+    col += doRayShading( light1 , light2 , norm , ro );
 
 
-    //col += hsv( spec , 1. , 1. ) * spec * 100.;
-
-    opacity += 1.;
-
-    col += vec3( 1. ,0. , 0. ) * light1.x +   vec3( 1.5 ,0.4 , 0. ) * pow( light1.y , 40. );
-    col += vec3( 0. ,0. , 1. ) * light2.x +   vec3( .0 ,0.4 , 1.5 ) * pow( light2.y, 40. );
-    col = color * vec3( AO * AO * AO );// vec3( pow( 1. - AO  , .5 ) );
+    col += doPalette( abs(sin(AO*20.)) , palette3 ) * (1. - ( AO * AO * AO));
 
 
-  
+
   }else{
-/*
-    if( dot( vNorm , -rdI ) < .3 ){ 
-      col = vNorm * .5 + .5;
-      opacity = 1.; 
-    }else{
-      //discard;
-    }*/
 
-    /*if( vUv.x < .05 || vUv.x > .95 || vUv.y < .05 || vUv.y > .95 ){
+    if( .5 - abs( vUv.x - .5 ) > edgeSize &&  .5 - abs( vUv.y - .5 ) > edgeSize ){ discard; }
+    //col += doBackgroundShading( light1 , light2 , ro );
 
-      col += doCol( lamb , spec );
-      col += vec3( .3 , .3 , .3 );
-      opacity = 1.;
-    }else{
-
-     // discard;
-    }*/
   }
 
 
-
-  //vec3 col = vec3( 2. - length( texture2D( t_iri , vUv * 4. - vec2( 1.5 ) ) ));
-
-  //vec3 col = vec3( hit );
-
-  //col = vCam * .5 + .5;
-
-
-  //gl_FragColor = vec4(vec3(length( col)) , 1. );
-
- 
-  gl_FragColor = vec4( col , opacity );
-
-
-
+  gl_FragColor = vec4( col , 1. );
 
 
 }

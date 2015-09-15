@@ -45,6 +45,9 @@
 
     var moving = false;
 
+
+    var holos = [];
+
       var camera, renderer, scene , controls , clock;
       
       var audioMesh;
@@ -140,59 +143,30 @@
         objectControls = new ObjectControls( camera );
 
 
-
-        var geo = new THREE.IcosahedronGeometry( 2.5 , 2 );
-        var position = new THREE.Vector3(0,0,0 );
-        var textPosition = new THREE.Vector3( 0 , -1 , 3 );
-
-        //tree = new Link( geo , uniforms , shaders.fs.tree , mainClick , "Tree Computer Inc." , position, textPosition ) 
-
-
-
-
-
-        var geo = new THREE.IcosahedronGeometry( .5 , 2 );
-
-
         var position = new THREE.Vector3( 4 , 2 , .8 );
-        var textPosition = new THREE.Vector3( 0 , -.6 , 0);
-
         var lightColor = new THREE.Vector3( 1 , 0 , 0 );
         uniforms.lightPosition1.value.copy( position );
-        uniforms.lightColor1.value.copy( lightColor );
-        //tweet = new Link( geo , uniforms , shaders.fs.holo , function(){window.open( 'http://twitter.com/lukexi' , '_blank' );}, "Tweet Luke & Isaac" , position,textPosition , lightColor )
+
         var geo = new THREE.IcosahedronGeometry( .1 , 1 );
         var mat = new THREE.MeshBasicMaterial({color:0xff0000})
-
-
         light1 = new THREE.Mesh( geo , mat );
         scene.add( light1 )
  
 
 
         var position = new THREE.Vector3( -3 , 1.5 , 2.8 );
-        var textPosition = new THREE.Vector3( 0 , -.6 , 0);
-        var lightColor = new THREE.Vector3( 0 , 0 , 1 );
         uniforms.lightPosition2.value.copy( position );
-        uniforms.lightColor2.value.copy( lightColor );
 
         var geo = new THREE.IcosahedronGeometry( .1 , 1 );
         var mat = new THREE.MeshBasicMaterial({color:0x0000ff})
 
         light2 = new THREE.Mesh( geo , mat )
-        scene.add( light2 )
+        scene.add( light2 );
 
-       // email = new Link( geo , uniforms , shaders.fs.holo ,  function(){window.open( 'mailto:who@tree.is'  , '_blank' );}, "Email Luke & Isaac" , position,textPosition,  lightColor  );
 
 
 
         var geo = new THREE.BoxGeometry( 3,3,3 )
-        var position = new THREE.Vector3( -3 , 1.5 , 2.8 );
-        var textPosition = new THREE.Vector3( 0 , -.6 , 0);
-        var lightColor = new THREE.Vector3( 0 , 0 , 1 );
-
-       
-        //uniforms.lightColor2.value.copy( lightColor );
 
         BG = new THREE.Mesh( geo , new THREE.ShaderMaterial({
           uniforms: {
@@ -212,7 +186,6 @@
             parameter6: { type:"f"  , value : .5 },
 
             iModelMat:{ type:"m4" , value: new THREE.Matrix4() },
-            //color: { type:"v3" , value: color },
             lightColor1: uniforms.lightColor1,
             lightColor2: uniforms.lightColor2,
 
@@ -223,7 +196,49 @@
 
         }))
 
-        scene.add( BG )
+        //scene.add( BG )
+
+
+ 
+
+        var geo = new THREE.BoxGeometry( 1. , 1. , 1. )
+
+       for( var i = 0; i< 16; i++ ){
+
+        var holo = new THREE.Mesh( geo , new THREE.ShaderMaterial({
+          uniforms: {
+
+            time:          uniforms.time,
+            lightPosition1: uniforms.lightPosition1,
+            lightPosition2: uniforms.lightPosition2,
+
+            filledness : uniforms.filledness,
+            completed : uniforms.completed,
+
+            parameter1: { type:"f"  , value : .5 },
+            parameter2: { type:"f"  , value : .5 },
+            parameter3: { type:"f"  , value : .5 },
+            parameter4: { type:"f"  , value : .5 },
+            parameter5: { type:"f"  , value : .5 },
+            parameter6: { type:"f"  , value : .5 },
+
+            iModelMat:{ type:"m4" , value: new THREE.Matrix4() },
+            lightColor1: uniforms.lightColor1,
+            lightColor2: uniforms.lightColor2,
+
+          },
+          vertexShader: shaders.vs.holo,
+          fragmentShader: shaders.fs.holo,
+         // side: THREE.BackSide
+
+        }))
+
+        scene.add( holo )
+
+        holos.push( holo )
+
+
+       }
 
 
 
@@ -275,6 +290,29 @@
         light2.position.copy( uniforms.lightPosition2.value )
 
 
+
+        for( var i = 0; i< holos.length; i++ ){
+
+          holos[i].position.x = Math.sin( uniforms.time.value * ( i + 4 ) * .01 ) * 3. * Math.sin( uniforms.time.value  * .01 * (i+2));
+          holos[i].position.y = Math.sin( uniforms.time.value * ( i + 4 ) * .0173 ) * 3.* Math.sin( uniforms.time.value  * .01 * (i+2));
+          holos[i].position.z = Math.sin( uniforms.time.value * ( i + 4 ) * .0074 ) * 3.* Math.sin( uniforms.time.value  * .01 * (i+2));
+
+          holos[i].rotation.x += .01 * Math.sin( i + 1 ); 
+          holos[i].rotation.y += .01 * Math.sin( i + 1 ); 
+          holos[i].rotation.z += .01 * Math.sin( i + 1 ); 
+        
+          holos[i].updateMatrixWorld();
+          holos[i].material.uniforms.iModelMat.value.getInverse( holos[i].matrixWorld );
+          
+          holos[i].material.uniforms.parameter1.value = holos[i].position.x;
+          holos[i].material.uniforms.parameter2.value = holos[i].position.y;
+          holos[i].material.uniforms.parameter3.value = holos[i].position.z;
+
+          holos[i].material.uniforms.parameter4.value = holos[i].rotation.x;
+          holos[i].material.uniforms.parameter5.value = holos[i].rotation.y;
+          holos[i].material.uniforms.parameter6.value = holos[i].rotation.z;
+
+        }
 
         controls.update();
         objectControls.update();

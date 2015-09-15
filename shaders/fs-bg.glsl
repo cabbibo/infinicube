@@ -28,11 +28,9 @@ mat4 palette2;
 mat4 palette3;
 
 
-
-
 const float MAX_TRACE_DISTANCE = 5.;           // max trace distance
 const float INTERSECTION_PRECISION = 0.1;        // precision of the intersection
-const int NUM_OF_TRACE_STEPS = 20;
+const int NUM_OF_TRACE_STEPS = 10;
 
 vec3 sunPos; 
 
@@ -199,7 +197,7 @@ vec3 doBackgroundShading( vec2 l1 , vec2 l2 , vec3 ro ){
 
   vec3 p =  doPalette( fillednessVal / 2. , palette3 ); 
 
-  vec3 col = p  * filledness* ( 1. + completed * .4 ) * .5; //* ( 1. - completed );
+  vec3 col = p  * filledness* ( 1. - completed * 1. ) * .5; //* ( 1. - completed );
 
   return col;
 
@@ -215,8 +213,6 @@ vec3 doRayShading( vec2 l1 , vec2 l2  , vec3 norm , vec3 ro ){
 
   spec = pow( l2.y , 10. );
   col +=  doPalette( l2.x , palette2 ) * ( l2.x  + spec );
-
-  //col += norm * .5 + .5;
 
   col += doBackgroundShading( l1 , l2 , ro ); //}
 
@@ -280,9 +276,6 @@ void main(){
   vec2 light1 = doLight( vLight1 , ro , vNorm , rd );
   vec2 light2 = doLight( vLight2 , ro , vNorm , rd );
 
-
-
-  float fillednessVal = (( ro.y + 1.5 )  / 3. ) * filledness;
   vec3 col = vec3( 0. , 0. , 0. );
 
   col += doBoxShading( light1 , light2 , ro );
@@ -306,16 +299,7 @@ void main(){
   }
 
 
-  //vec3 col = vec3( 2. - length( texture2D( t_iri , vUv * 4. - vec2( 1.5 ) ) ));
-
-  //vec3 col = vec3( hit );
-
-  //col = vCam * .5 + .5;
-
-
-  //gl_FragColor = vec4(vec3( length(col)) , 1. );
   gl_FragColor = vec4( col , 1. );
 
-  //gl_FragColor = vec4( 1. );
 
 }

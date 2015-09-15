@@ -11,6 +11,10 @@ uniform float parameter6;
 uniform vec3 lightColor1;
 uniform vec3 lightColor2;
 
+
+uniform float filledness;
+uniform float completed;
+
 varying vec3 vPos;
 varying vec3 vCam;
 varying vec3 vNorm;
@@ -21,6 +25,11 @@ varying vec3 vLight2;
 
 
 varying vec2 vUv;
+
+
+mat4 palette1;
+mat4 palette2;
+mat4 palette3;
 
 
 // Branch Code stolen from : https://www.shadertoy.com/view/ltlSRl
@@ -135,28 +144,42 @@ vec2 map( vec3 pos ){
     
 }
 
+vec2 calcIntersection( in vec3 ro, in vec3 rd ){
 
+    
+    float h =  INTERSECTION_PRECISION*2.0;
+    float t = 0.0;
+    float res = -1.0;
+    float id = -1.;
+    
+    for( int i=0; i< NUM_OF_TRACE_STEPS ; i++ ){
+        
+        if( h < INTERSECTION_PRECISION || t > MAX_TRACE_DISTANCE ) break;
+      vec2 m = map( ro+rd*t );
+        h = m.x;
+        t += h;
+        id = m.y;
+        
+    }
 
-//----
-// Camera Stuffs
-//----
-mat3 calcLookAtMatrix( in vec3 ro, in vec3 ta, in float roll )
-{
-    vec3 ww = normalize( ta - ro );
-    vec3 uu = normalize( cross(ww,vec3(sin(roll),cos(roll),0.0) ) );
-    vec3 vv = normalize( cross(uu,ww));
-    return mat3( uu, vv, ww );
+    if( t < MAX_TRACE_DISTANCE ) res = t;
+    if( t > MAX_TRACE_DISTANCE ) id =-1.0;
+    
+    return vec2( res , id );
+    
 }
 
-void doCamera( out vec3 camPos, out vec3 camTar, in float time, in vec2 mouse )
-{
-    float an = 0.3 + 3.0*mouse.x;
-    float an2 = 0.3 + 3.0*mouse.y;
 
-  camPos = vec3(3.5*sin(an),3. * cos( an2),3.5*cos(an));
-    camTar = vec3(0. ,0.0,0.0);
+
+
+vec3 palette( in float t, in vec3 a, in vec3 b, in vec3 c, in vec3 d )
+{
+    return a + b*cos( 6.28318*(c*t+d) );
 }
 
+vec3 doPalette( in float val , in mat4 pType ){
+  return palette( val ,  pType[0].xyz , pType[1].xyz , pType[2].xyz , pType[3].xyz );
+}
 
 
 
@@ -164,14 +187,14 @@ void doCamera( out vec3 camPos, out vec3 camTar, in float time, in vec2 mouse )
 // remapping the function, and getting normal for that
 vec3 calcNormal( in vec3 pos ){
     
-  vec3 eps = vec3( 0.01, 0.0, 0.0 );
+  vec3 eps = vec3( 0.001, 0.0, 0.0 );
   vec3 nor = vec3(
       map(pos+eps.xyy).x - map(pos-eps.xyy).x,
       map(pos+eps.yxy).x - map(pos-eps.yxy).x,
       map(pos+eps.yyx).x - map(pos-eps.yyx).x );
+
   return normalize(nor);
 }
-
 
 
 float calcAO( in vec3 pos, in vec3 nor )
@@ -190,39 +213,13 @@ float calcAO( in vec3 pos, in vec3 nor )
 }
 
 
-vec2 calcIntersection( in vec3 ro, in vec3 rd ){
-
-    
-    float h =  INTERSECTION_PRECISION*2.0;
-    float t = 0.0;
-  float res = -1.0;
-    float id = -1.;
-    
-    for( int i=0; i< NUM_OF_TRACE_STEPS ; i++ ){
-        
-        if( h < INTERSECTION_PRECISION || t > MAX_TRACE_DISTANCE ) break;
-      vec2 m = map( ro+rd*t );
-        h = m.x;
-        t += h;
-        id = m.y;
-        
-    }
-
-    if( t < MAX_TRACE_DISTANCE ) res = t;
-    if( t > MAX_TRACE_DISTANCE ) id =-1.0;
-    
-    return vec2( res , id );
-     
-}
-
-
 vec2 doLight( vec3 lightPos , vec3 pos , vec3 norm , vec3 eyeDir ){
 
   vec3 lightDir = normalize( lightPos - pos );
   vec3 reflDir  = reflect( lightDir , norm );
 
 
-  float lamb = max( 0. , dot( lightDir ,    norm ) );
+  float lamb = max( 0. , dot( lightDir , norm   ) );
   float spec = max( 0. , dot( reflDir  , eyeDir ) );
 
   return vec2( lamb , spec );
@@ -230,56 +227,136 @@ vec2 doLight( vec3 lightPos , vec3 pos , vec3 norm , vec3 eyeDir ){
 }
 
 
-void main(){
-
-  vec3 ro = vPos;
-  vec3 rdI = normalize( vPos - vCam );
-  vec3 rd = refract( rdI , vNorm , 1. / 1.5 );
-
-  vec2 res = calcIntersection( ro , rd );
-
-  vec2 light1 = doLight( vLight1 , ro , vNorm , rdI );
-  vec2 light2 = doLight( vLight2 , ro , vNorm , rdI );
+vec3 doBoxShading( vec2 l1 , vec2 l2 , vec3 ro ){
 
   vec3 col = vec3( 0. );
 
-  float opacity = length( col );
-  
+  float fillednessVal = (( ro.y + 1.5 )  / 3. ) * filledness;
+
+  float spec = pow( l1.y , 40. );
+  col +=  doPalette( l1.x , palette1 ) * ( spec ) * .5;
+
+  spec = pow( l2.y , 40. );
+  col +=  doPalette( l2.x , palette2 ) * ( spec ) * .5;
+
+
+  float edgeSize = .05  * (1. - completed ) + .01;
+  if( vUv.x < edgeSize || vUv.x > 1. - edgeSize || vUv.y < edgeSize || vUv.y > 1. - edgeSize ){
+    col += vec3( .3 , .3 , .3 );
+  }
+
+  return col;
+
+}
+
+vec3 doBackgroundShading( vec2 l1 , vec2 l2 , vec3 ro ){
+
+  float fillednessVal = ( ro.y + 1.5 ) / 3. * filledness * ( 1. + completed );
+
+  vec3 p =  doPalette( fillednessVal / 2. , palette3 ); 
+
+  vec3 col = p  * filledness* ( 1. - completed * 1. ) * .5; //* ( 1. - completed );
+
+  return col;
+
+}
+
+
+vec3 doRayShading( vec2 l1 , vec2 l2  , vec3 norm , vec3 ro ){
+
+  vec3 col = vec3( 0. );
+
+  float spec = pow( l1.y , 10. );
+  col +=  doPalette( l1.x , palette1 ) * ( l1.x  + spec );
+
+  spec = pow( l2.y , 10. );
+  col +=  doPalette( l2.x , palette2 ) * ( l2.x  + spec );
+
+  col += doBackgroundShading( l1 , l2 , ro ); //}
+
+  return col;
+}
+
+
+
+void main(){
+
+  //sunPos = vec3( 0. , filledness * 2. - 3. + completed * 5. , -3.6 );
+
+
+  /*palette1 = mat4( .5 , .5 , .5 , 0. 
+                 , .5 , .5 , .5 , 0.
+                 , 1. , 1. , 1. , 0.
+                 , .3 , .2 , .2 , 0.
+                 );
+
+  palette2 = mat4( .5 , .5 , .5 , 0. 
+                 , .5 , .5 , .5 , 0.
+                 , 1. , 1. , 0. , 0.
+                 , .8 , .9 , .3 , 0.
+                 );
+
+
+  palette3 = mat4( .5 , .5 , .5 , 0. 
+                 , .5 , .5 , .5 , 0.
+                 , 2. , 1. , 0. , 0.
+                 , .5 , .2 , .25 , 0.
+                 );*/
+
+
+  palette1 = mat4( .5  * ( 1. + sin( time * .5 ) * .3 ) , .5 * ( 1. + sin( time * .5 ) * .3 )  , .5 * ( 1. + sin( time * .5 ) * .3 )  , 0. 
+                 , .5  * ( 1. + sin( time * .8 ) * .3 ) , .5 * ( 1. + sin( time * .3 ) * .3 )  , .5 * ( 1. + sin( time * .19 ) * .3 )  , 0.
+                 , 1.  * ( 1. + sin( time * .2 ) * .3 ) , 1. * ( 1. + sin( time * .7 ) * .3 )  , 1. * ( 1. + sin( time * .4 ) * .3 )  , 0.
+                 , .3  * ( 1. + sin( time * .1 ) * .3 ) , .2 * ( 1. + sin( time * .9 ) * .3 )  , .2 * ( 1. + sin( time * 1.5 ) * .3 )  , 0.
+                 );
+
+  palette2 = mat4( .5 * ( 1. + sin( time * .56 ) * .3 )  , .5 * ( 1. + sin( time * .225 ) * .3 )  , .5  * ( 1. + sin( time * .111 ) * .3 ) , 0. 
+                 , .5 * ( 1. + sin( time * 1.5 ) * .3 )  , .5 * ( 1. + sin( time * .2 ) * .3 )  , .5  * ( 1. + sin( time * .3 ) * .3 ) , 0.
+                 , 1. * ( 1. + sin( time * .73 ) * .3 )  , 1. * ( 1. + sin( time * .15 ) * .3 )  , 0.  * ( 1. + sin( time * .74 ) * .3 ) , 0.
+                 , .8 * ( 1. + sin( time * 1.5 ) * .3 )  , .9 * ( 1. + sin( time * .35 ) * .3 )  , .3  * ( 1. + sin( time * .9 ) * .3 ) , 0.
+                 );
+
+
+  palette3 = mat4( .5  * ( 1. + sin( time * .86 ) * .3 )  , .5 * ( 1. + sin( time * .51 ) * .3 )  , .5  * ( 1. + sin( time * .2 ) * .3 ) , 0. 
+                 , .5  * ( 1. + sin( time * 1. ) * .3 )  , .5 * ( 1. + sin( time * .76 ) * .3 )  , .5  * ( 1. + sin( time * 1.5 ) * .3 ) , 0.
+                 , 2.  * ( 1. + sin( time * .72 ) * .3 )  , 1. * ( 1. + sin( time * .21 ) * .3 )  , 0.  * ( 1. + sin( time * .632 ) * .3 ) , 0.
+                 , .5  * ( 1. + sin( time * .11 ) * .3 )  , .2 * ( 1. + sin( time * .06 ) * .3 )  , .25 * ( 1. + sin( time * .755 ) * .3 )  , 0.
+                 );
+
+
+  vec3 ro = vPos;
+  vec3 rd = normalize( vPos - vCam );
+
+  vec2 res = calcIntersection( ro , rd );
+
+
+  vec2 light1 = doLight( vLight1 , ro , vNorm , rd );
+  vec2 light2 = doLight( vLight2 , ro , vNorm , rd );
+
+  vec3 col = vec3( 0. , 0. , 0. );
+
+  col += doBoxShading( light1 , light2 , ro );
+
   if( res.y > .5 ){
 
     vec3 pos = ro + rd * res.x;
+    vec3 norm = calcNormal( pos );
 
-    vec3 lightDir = normalize( vLight1 - pos);
-    vec3 norm;
 
-    
-    norm = calcNormal( pos );
-    
     light1 = doLight( vLight1 , pos , norm , rd );
     light2 = doLight( vLight2 , pos , norm , rd );
 
-
-    float AO = calcAO( pos , norm );
-
-
-    col += lightColor1 * light1.x + lightColor1 * 2. * pow( light1.y , 40. );
-    col += lightColor2 * light2.x + lightColor2 * 2. * pow( light2.y, 40. );
-    col *= AO;
-
-
-    opacity += 1.;
-
+   // col += norm * .5 + .5;
+    col += doRayShading( light1 , light2 , norm , ro );
 
   }else{
+
+    col += doBackgroundShading( light1 , light2 , ro );
 
   }
 
 
- 
-  gl_FragColor = vec4( col ,1.);// opacity );
-
-
-
+  gl_FragColor = vec4( col , 1. );
 
 
 }
