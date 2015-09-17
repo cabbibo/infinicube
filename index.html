@@ -196,14 +196,15 @@
 
         }))
 
-        //scene.add( BG )
+        scene.add( BG )
+
 
 
  
 
         var geo = new THREE.BoxGeometry( 1. , 1. , 1. )
 
-       for( var i = 0; i< 16; i++ ){
+       for( var i = 0; i< 19; i++ ){
 
         var holo = new THREE.Mesh( geo , new THREE.ShaderMaterial({
           uniforms: {
@@ -233,7 +234,7 @@
 
         }))
 
-        scene.add( holo )
+        //scene.add( holo )
 
         holos.push( holo )
 

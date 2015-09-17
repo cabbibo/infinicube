@@ -394,7 +394,7 @@ void main(){
 
   }else{
 
-    if( .5 - abs( vUv.x - .5 ) > edgeSize &&  .5 - abs( vUv.y - .5 ) > edgeSize ){ discard; }
+    //if( .5 - abs( vUv.x - .5 ) > edgeSize &&  .5 - abs( vUv.y - .5 ) > edgeSize ){ discard; }
     //col += doBackgroundShading( light1 , light2 , ro );
 
   }
